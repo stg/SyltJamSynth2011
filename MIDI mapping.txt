@@ -1,0 +1,16 @@
+ 1 supersaw Spread
+10 f0 center
+11 f0 q-factor
+12 f0 f-value
+13 f0 mode
+14 f1 center
+15 f1 q-factor
+16 f1 f-value
+17 f1 mode
+18 env. initial
+19 env. attack
+20 env. decay
+21 env. sustain
+22 env. release
+23 mono/poly
+24 portamento
