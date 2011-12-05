@@ -82,14 +82,6 @@ unsigned char out;
           int iout;
 
 // Envelope shaping parameters
-/*
-unsigned char env_initial = 0x10;
-unsigned char env_attack = 0x04;
-unsigned char env_decay = 0x01;
-unsigned char env_sustain = 0x20;
-unsigned char env_release = 0x01;
-unsigned int  env_count = 0;
-*/
 unsigned char env_initial = 0x40;
 unsigned char env_attack = 0x40;
 unsigned char env_decay = 0x00;
@@ -207,6 +199,10 @@ void p_rem( unsigned char m ) {
 ISR( TIMER1_COMPA_vect ) {
   static unsigned char n;
   // clock out 8-bits of pcm data
+  // IMPORTANT: the 0x## list for each bit is shifted in this code
+  //            due to a hardware error on my board. for a correctly
+  //            constructed board the list should work it's way down
+  //            from 0x80 to 0x01 - sorry about this!
   digitalWriteFast( PCM_CLK, LOW );
   digitalWriteFast( PCM_SDA, ( out & 0x40 ) );
   digitalWriteFast( PCM_CLK, HIGH );
@@ -324,16 +320,22 @@ void setup( void ) {
 
   sei();  
   
-//  TCCR0/2B[2:0]
-//  001 = 1
-//  010 = 8
-//  011 = 64
-//  100 = 256
-//  101 = 1024
-  
-//  TCNT0/2 == timer register (set 0 on chg)
-//  OCR0/2A == threshold
+}
 
+void filter_freq( unsigned char filter, unsigned int freq ) {
+  // TODO: this function is needed for better filter range
+  //       will be used to implement key tracking and
+  //       possible filter shaping.
+  //
+  //  Prescaler: TCCRnB[2:0]
+  //    001 = 1
+  //    010 = 8
+  //    011 = 64
+  //    100 = 256
+  //    101 = 1024
+  //  Threshold: OCRnA
+  //  Timer: TCNTn
+  //    Might need reset when dealing with higher prescalers
 }
 
 // Writes data 0...3 to filter address 0...7 (filter 0) or 80...87 (filter 1)
