@@ -57,9 +57,6 @@ const float ffreq[] = {
   8372.01, 8869.84, 9397.27, 9956.06, 10548.0, 11175.3, 11839.8, 12543.8
 };
 
-// default startup filter values
-unsigned int  f1 = 10, f2 = 20;
-
 // default startup pitch
 float pitch = 1.0;
 
@@ -197,7 +194,6 @@ void p_rem( unsigned char m ) {
 }
 
 ISR( TIMER1_COMPA_vect ) {
-  static unsigned char n;
   // clock out 8-bits of pcm data
   // IMPORTANT: the 0x## list for each bit is shifted in this code
   //            due to a hardware error on my board. for a correctly
@@ -278,64 +274,45 @@ ISR( TIMER1_COMPA_vect ) {
   out = ( ( char )( iout >> 4 ) ) ^ 0x80;  
 }
 
-void setup( void ) {
-  unsigned int limit;
-  pinMode( PCM_LCH, OUTPUT );
-  pinMode( PCM_SDA, OUTPUT );
-  pinMode( PCM_CLK, OUTPUT );
-  pinMode( FLT_F0, OUTPUT );
-  pinMode( FLT_F1, OUTPUT );
-  pinMode( FLT_WR, OUTPUT );
-  pinMode( FLT_D0, OUTPUT );
-  pinMode( FLT_D1, OUTPUT );
-  pinMode( FLT_A0, OUTPUT );
-  pinMode( FLT_A1, OUTPUT );
-  pinMode( FLT_A2, OUTPUT );
-  pinMode( FLT_A3, OUTPUT );
-  pinMode( BTN_F1, INPUT );
-  pinMode( BTN_F2, INPUT );
-  pinMode( BTN_F3, INPUT );
-
-  TIMSK0 = 0; // Disable timer 0 interrupts
-  TCCR0A = 0b01000010;
-  TCCR0B = 0b00000001;
-
-  OCR0A = 100;
-  
-  TIMSK2 = 0; // Disable timer 2 interrupts
-  TCCR2A = 0b01000010;
-  TCCR2B = 0b00000001;
-  OCR2A = 20;
-
-  limit = 16000000 / SAMPLE_FREQ;
-  
-  TCCR1A = 0b00000000;
-  TCCR1B = 0b00001001;
-  OCR1AH = limit >> 8;
-  OCR1AL = limit & 0xFF;
-
-  TIMSK1 |=  ( ( 1 << TOIE1  ) | ( 1 << OCIE1A ) );
-  
-  MIDI.begin();
-
-  sei();  
-  
-}
-
-void filter_freq( unsigned char filter, unsigned int freq ) {
-  // TODO: this function is needed for better filter range
-  //       will be used to implement key tracking and
-  //       possible filter shaping.
-  //
-  //  Prescaler: TCCRnB[2:0]
-  //    001 = 1
-  //    010 = 8
-  //    011 = 64
-  //    100 = 256
-  //    101 = 1024
-  //  Threshold: OCRnA
-  //  Timer: TCNTn
-  //    Might need reset when dealing with higher prescalers
+// Sets the center frequency 4...40000hz for filter 0...1
+void filter_c( unsigned char filter, float freq ) {
+	float ps;
+	unsigned char psb, lb;
+	static psbm[ 2 ] = { 0x7, 0x7 };
+	freq *= 150.8;
+	if( f < 31250.0 ) {
+		if( f < 3905.25 ) {
+			if( f < 488.28125 ) {
+				if( f < 122.0703125 ) {
+					ps = 1024.0; psb = 5;
+				} else {
+					ps = 256.0; psb = 4;
+				}
+			} else {
+				ps = 64.0; psb = 3;
+			}
+		} else {
+			ps = 8.0; psb = 2;
+		}
+	} else {
+		ps = 1.0; psb = 1;
+	}
+	lb = 8000000.0 / ( freq * ps );
+	if( filter ) {
+		if( psbm[ 1 ] != psb ) {
+		  psbm[ 1 ] = psb;
+  		TCCR2B = TCCR2B & 0xF8 | psb;
+		}
+		OCR2A = lb;
+		TCNT2 = 0;
+	} else {
+		if( psbm[ 0 ] != psb ) {
+		  psbm[ 0 ] = psb;
+  		TCCR0B = TCCR2B & 0xF8 | psb;
+  	}
+		OCR0A = lb;
+		TCNT0 = 0;
+	}
 }
 
 // Writes data 0...3 to filter address 0...7 (filter 0) or 80...87 (filter 1)
@@ -391,6 +368,57 @@ void freqman( unsigned char ch, float f ) {
   pfreq[ ch ][ 1 ] = pitch * f * ( ( 65536.0 - ( spread * 3 ) ) / ( float )SAMPLE_FREQ );
   pfreq[ ch ][ 2 ] = pitch * f * ( ( 65536.0 - ( spread * 7 ) ) / ( float )SAMPLE_FREQ );
   pfreq[ ch ][ 3 ] = pitch * f * ( ( 65536.0 - ( spread * 13 ) ) / ( float )SAMPLE_FREQ );
+}
+
+void setup( void ) {
+  unsigned int limit;
+  pinMode( PCM_LCH, OUTPUT );
+  pinMode( PCM_SDA, OUTPUT );
+  pinMode( PCM_CLK, OUTPUT );
+  pinMode( FLT_F0, OUTPUT );
+  pinMode( FLT_F1, OUTPUT );
+  pinMode( FLT_WR, OUTPUT );
+  pinMode( FLT_D0, OUTPUT );
+  pinMode( FLT_D1, OUTPUT );
+  pinMode( FLT_A0, OUTPUT );
+  pinMode( FLT_A1, OUTPUT );
+  pinMode( FLT_A2, OUTPUT );
+  pinMode( FLT_A3, OUTPUT );
+  pinMode( BTN_F1, INPUT );
+  pinMode( BTN_F2, INPUT );
+  pinMode( BTN_F3, INPUT );
+
+  TIMSK0 = 0; // Disable timer 0 interrupts
+  TCCR0A = 0b01000010;
+  TCCR0B = 0b00000001;
+  
+  TIMSK2 = 0; // Disable timer 2 interrupts
+  TCCR2A = 0b01000010;
+  TCCR2B = 0b00000001;
+
+  limit = 16000000 / SAMPLE_FREQ;
+  
+  TCCR1A = 0b00000000;
+  TCCR1B = 0b00001001;
+  OCR1AH = limit >> 8;
+  OCR1AL = limit & 0xFF;
+  
+  // Default filter setup
+  filter_mode( 0, 0 );
+  filter_mode( 1, 0 );
+  filter_q( 0, 0x40 );
+  filter_q( 1, 0x40 );
+  filter_f( 0, 0x20 );
+  filter_f( 1, 0x20 );
+  filter_c( 0, 10000 );
+  filter_c( 1, 10000 );
+
+  TIMSK1 |=  ( ( 1 << TOIE1  ) | ( 1 << OCIE1A ) );
+  
+  MIDI.begin();
+
+  sei();  
+  
 }
 
 void loop( void ) {
