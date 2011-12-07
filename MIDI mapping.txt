@@ -1,16 +1,36 @@
  1 supersaw Spread
-10 f0 center
-11 f0 q-factor
-12 f0 f-value
+
+10 f0 cutoff 
+11 f0 resonance
+12 f0 frequency shift
 13 f0 mode
-14 f1 center
-15 f1 q-factor
-16 f1 f-value
-17 f1 mode
-18 env. initial
-19 env. attack
-20 env. decay
-21 env. sustain
-22 env. release
-23 mono/poly
-24 portamento
+
+15 f1 cutoff
+16 f1 resonance
+17 f1 frequency shift
+18 f1 mode
+
+20 portamento rate
+21 volume envelope initial level
+22 volume envelope attack rate
+23 volume envelope decay rate
+24 volume envelope sustain level
+25 volume envelope release rate
+
+29 mode (0-63: mono, 64-127: poly)
+
+30 f0 tracking (0: envelope, 1-127: key tracking rate)
+31 f0 envelope initial level
+32 f0 envelope attack rate
+33 f0 envelope decay rate
+34 f0 envelope sustain level
+35 f0 envelope release rate
+36 f0 envelope multiplier (0-63: negative, 65-127: positive)
+
+40 f1 tracking (0: envelope, 1-127: key tracking rate)
+41 f1 envelope initial level
+42 f1 envelope attack rate
+43 f1 envelope decay rate
+44 f1 envelope sustain level
+45 f1 envelope release rate
+46 f1 envelope multiplier (0-63: negative, 65-127: positive)
