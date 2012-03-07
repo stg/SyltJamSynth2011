@@ -1,0 +1,24 @@
+FIX
+[X] 1N4148 - diode does not have direction indication on PCB
+
+[X] 100nF - one missing on BOM
+
+[X] 4.7uF - one missing on BOM
+
+[X] DIN-connector - BOM refers to male connector, should be PCB female
+
+[X] Holes in PCB for DIN-connector are too small to fit physical connector
+
+[X] Holes in PCB for potentiometer are too close to eachother
+
+[X] Sockets need to be added to BOM
+
+[X] Some component texts are hard to read, move
+
+[X] PCB is designed for 100nF of wrong size
+
+[X] Double-check "chassis-distance" for A.USB, A.Power, MIDI, Volume, Tele
+
+[X] Remove 220R pull-up for MIDI, Arduino has sufficient on-board pull-up
+
+[X] Capicitor + symbol on PCB needs better placement for clarity
