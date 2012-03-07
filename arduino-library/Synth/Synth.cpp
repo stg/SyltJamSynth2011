@@ -58,7 +58,7 @@ static uint8_t volatile midi_free = MIDI_QUEUE_SIZE;
     *p_queue_head = midi; \
     midi.message = temp; \
     if( ++p_queue_head ==  &queue[ MIDI_QUEUE_SIZE ] ) p_queue_head = queue; \
-    midi_free--; \    
+    midi_free--; \
   } }
 
 // Writes data 0...3 to filter address 0...7 (filter 0) or 80...87 (filter 1)
