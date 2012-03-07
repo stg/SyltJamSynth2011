@@ -1,0 +1,49 @@
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+Synth	KEYWORD1
+Synth.h	KEYWORD1
+Synth_Class	KEYWORD1
+filter_e	KEYWORD1
+midi_e	KEYWORD1
+midi_t	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+setFilter	KEYWORD2
+setCutoff	KEYWORD2
+setMode	KEYWORD2
+setShift	KEYWORD2
+setResonance	KEYWORD2
+sample	KEYWORD2
+readMidi	KEYWORD2
+
+#######################################
+# Instances (KEYWORD2)
+#######################################
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+noteTable	LITERAL1
+NoteOff	LITERAL1
+NoteOn	LITERAL1
+AfterTouchPoly	LITERAL1
+ControlChange	LITERAL1
+ProgramChange	LITERAL1
+AfterTouchChannel	LITERAL1
+PitchBend	LITERAL1
+TimeCodeQuarterFrame	LITERAL1
+SongPosition	LITERAL1
+SongSelect	LITERAL1
+TuneRequest	LITERAL1
+Clock	LITERAL1
+Start	LITERAL1
+Continue	LITERAL1
+Stop	LITERAL1
+ActiveSensing	LITERAL1
+SystemReset	LITERAL1

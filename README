@@ -1,6 +1,4 @@
-Source code for the SyltJamSynth.
+Code for the 2011 SyltJamSynth.
 
-There is an error on my circuitboard which has been corrected in software.
-Search the source code for IMPORTANT and modify according to the description if you've done a better job than me ;)
-
-See the homepage for more information.
+This is the source code for the commercial version of the SyltJamSynth.
+For the original DIY version (described at forskningsavd.se), refer to the ./diy/ folder.
