@@ -1,6 +1,7 @@
-Source code for the SyltJamSynth.
+Source code for the DIY version of SyltJamSynth2011.
 
-There is an error on my circuitboard which has been corrected in software.
-Search the source code for IMPORTANT and modify according to the description if you've done a better job than me ;)
+The source code requires the following Arduino libraries:
+MIDILibray       @ http://arduino.cc/playground/Main/MIDILibrary
+digitalWriteFast @ http://code.google.com/p/digitalwritefast/
 
-See the homepage for more information.
+See http://wiki.forskningsavd.se/SyltJamSynth for more information.

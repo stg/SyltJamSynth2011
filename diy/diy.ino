@@ -1,5 +1,5 @@
 #include <MIDI.h>
-//#include <digitalWriteFast.h>
+#include <digitalWriteFast.h>
 
 #define PCM_LCH 10
 #define PCM_CLK 13
@@ -228,36 +228,32 @@ ISR( TIMER1_COMPA_vect ) {
   static   uint8_t out = 0x00; // final out
 
   // clock out 8-bits of pcm data
-  // IMPORTANT: the 0x## list for each bit is shifted in this code
-  //            due to a hardware error on my board. for a correctly
-  //            constructed board the list should work it's way down
-  //            from 0x80 to 0x01 - sorry about this!
-  digitalWrite( PCM_LCH, HIGH );
-  digitalWrite( PCM_LCH, LOW );
-  digitalWrite( PCM_CLK, LOW );
-  digitalWrite( PCM_SDA, ( out & 0x40 ) );
-  digitalWrite( PCM_CLK, HIGH );
-  digitalWrite( PCM_CLK, LOW );
-  digitalWrite( PCM_SDA, ( out & 0x20 ) );
-  digitalWrite( PCM_CLK, HIGH );
-  digitalWrite( PCM_CLK, LOW );
-  digitalWrite( PCM_SDA, ( out & 0x10 ) );
-  digitalWrite( PCM_CLK, HIGH );
-  digitalWrite( PCM_CLK, LOW );
-  digitalWrite( PCM_SDA, ( out & 0x08 ) );
-  digitalWrite( PCM_CLK, HIGH );
-  digitalWrite( PCM_CLK, LOW );
-  digitalWrite( PCM_SDA, ( out & 0x04 ) );
-  digitalWrite( PCM_CLK, HIGH );
-  digitalWrite( PCM_CLK, LOW );
-  digitalWrite( PCM_SDA, ( out & 0x02 ) );
-  digitalWrite( PCM_CLK, HIGH );
-  digitalWrite( PCM_CLK, LOW );
-  digitalWrite( PCM_SDA, ( out & 0x01 ) );
-  digitalWrite( PCM_CLK, HIGH );
-  digitalWrite( PCM_CLK, LOW );
-  digitalWrite( PCM_SDA, ( out & 0x80 ) );
-  digitalWrite( PCM_CLK, HIGH );
+  digitalWriteFast( PCM_LCH, HIGH );
+  digitalWriteFast( PCM_LCH, LOW );
+  digitalWriteFast( PCM_CLK, LOW );
+  digitalWriteFast( PCM_SDA, ( out & 0x80 ) );
+  digitalWriteFast( PCM_CLK, HIGH );
+  digitalWriteFast( PCM_CLK, LOW );
+  digitalWriteFast( PCM_SDA, ( out & 0x40 ) );
+  digitalWriteFast( PCM_CLK, HIGH );
+  digitalWriteFast( PCM_CLK, LOW );
+  digitalWriteFast( PCM_SDA, ( out & 0x20 ) );
+  digitalWriteFast( PCM_CLK, HIGH );
+  digitalWriteFast( PCM_CLK, LOW );
+  digitalWriteFast( PCM_SDA, ( out & 0x10 ) );
+  digitalWriteFast( PCM_CLK, HIGH );
+  digitalWriteFast( PCM_CLK, LOW );
+  digitalWriteFast( PCM_SDA, ( out & 0x08 ) );
+  digitalWriteFast( PCM_CLK, HIGH );
+  digitalWriteFast( PCM_CLK, LOW );
+  digitalWriteFast( PCM_SDA, ( out & 0x04 ) );
+  digitalWriteFast( PCM_CLK, HIGH );
+  digitalWriteFast( PCM_CLK, LOW );
+  digitalWriteFast( PCM_SDA, ( out & 0x02 ) );
+  digitalWriteFast( PCM_CLK, HIGH );
+  digitalWriteFast( PCM_CLK, LOW );
+  digitalWriteFast( PCM_SDA, ( out & 0x01 ) );
+  digitalWriteFast( PCM_CLK, HIGH );
   // update voice 0
   vout = -512;
   ppcm[ 0 ][ 0 ] += pfreq[ 0 ][ 0 ];
@@ -354,14 +350,14 @@ void filter_c( uint8_t filter, float freq ) {
 
 // Writes data 0...3 to filter address 0...7 (filter 0) or 80...87 (filter 1)
 void filter_write( uint8_t addr, uint8_t data ) {
-  digitalWrite( FLT_A3, ( addr & 0x80 ? HIGH : LOW ) );
-  digitalWrite( FLT_A2, ( addr & 0x04 ? HIGH : LOW ) );
-  digitalWrite( FLT_A1, ( addr & 0x02 ? HIGH : LOW ) );
-  digitalWrite( FLT_A0, ( addr & 0x01 ? HIGH : LOW ) );
-  digitalWrite( FLT_D1, ( data & 0x02 ? HIGH : LOW ) );
-  digitalWrite( FLT_D0, ( data & 0x01 ? HIGH : LOW ) );
-  digitalWrite( FLT_WR, HIGH );
-  digitalWrite( FLT_WR, LOW );
+  digitalWriteFast( FLT_A3, ( addr & 0x80 ? HIGH : LOW ) );
+  digitalWriteFast( FLT_A2, ( addr & 0x04 ? HIGH : LOW ) );
+  digitalWriteFast( FLT_A1, ( addr & 0x02 ? HIGH : LOW ) );
+  digitalWriteFast( FLT_A0, ( addr & 0x01 ? HIGH : LOW ) );
+  digitalWriteFast( FLT_D1, ( data & 0x02 ? HIGH : LOW ) );
+  digitalWriteFast( FLT_D0, ( data & 0x01 ? HIGH : LOW ) );
+  digitalWriteFast( FLT_WR, HIGH );
+  digitalWriteFast( FLT_WR, LOW );
 }
 
 // Sets mode for filter 0...1 to 0...3
@@ -503,7 +499,7 @@ void loop( void ) {
         pitch_calc( 2 );
         pitch_calc( 3 );
         break;
-      case CC:
+      case ControlChange:
         switch( MIDI.getData1() ) {
           case 1: // Waveform spread
             spread = ( ( float )MIDI.getData2() ) * 2;
