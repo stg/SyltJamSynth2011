@@ -280,6 +280,19 @@ void Synth_Class::setFilter( uint8_t filter, uint8_t type ) {
   sei();
 }  
 
+// Sets the center frequency using a direct (much faster) approach
+void Synth_Class::setClock( uint8_t filter, uint8_t psb, uint8_t ocr ) {
+    if( filter ) {
+      TCCR2B = ( TCCR2B & 0xF8 ) | psb;
+      OCR2A = ocr;
+      TCNT2 = 0;
+    } else {
+      TCCR0B = ( TCCR0B & 0xF8 ) | psb;
+      OCR0A = ocr;
+      TCNT0 = 0;
+    }
+}
+
 // Sets the center frequency 4...40000hz for filter 0...1
 void Synth_Class::setCutoff( uint8_t filter, float freq ) {
 	float ps;

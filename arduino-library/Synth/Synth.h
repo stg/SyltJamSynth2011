@@ -89,10 +89,15 @@ public:
 	// Sets the filter FILTER_LP/FILTER_BP/FILTER_HP for filter 0...1
 	// This refers to which output pin of the filter is connected
   void setFilter( uint8_t filter, uint8_t type );
-  
+
   // Sets F-value 4...40000hz for filter 0...1
   // This value refers to the center/cut-off frequency of the filter
   void setCutoff( uint8_t filter, float freq );
+
+  // Sets the F-value using a direct (and much faster) approach
+  // psb and ocr refers to prescaler bits and output compare register
+  // See the microcontroller datasheet for more information on these
+  void setClock( uint8_t filter, uint8_t psb, uint8_t ocr );
   
   // Sets mode-value 0...3 for filter 0...1
   // This value refers to different operating modes for the filter
