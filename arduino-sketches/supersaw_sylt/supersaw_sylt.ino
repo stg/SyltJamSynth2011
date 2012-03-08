@@ -338,6 +338,9 @@ void loop( void ) {
           case 13: // F0 mode
             Synth.setMode( 0, midi->data2 >> 5 );
             break;
+          case 14: // F0 type
+            Synth.setFilter( 0, ( midi->data2 < 43 ? FILTER_LP : ( midi->data2 < 86 ? FILTER_BP : FILTER_HP ) ) );
+            break;
           
           case 15: // F1 center frequency
             //OCR0A = ( 255 - midi->data2 ) << 1;
@@ -352,6 +355,9 @@ void loop( void ) {
             break;
           case 18: // F1 mode
             Synth.setMode( 1, midi->data2 >> 5 );
+            break;
+          case 19: // F1 type
+            Synth.setFilter( 1, ( midi->data2 < 43 ? FILTER_LP : ( midi->data2 < 86 ? FILTER_BP : FILTER_HP ) ) );
             break;
           
           case 20: // Pitch portamento speed
