@@ -13,7 +13,17 @@
 
 #include <inttypes.h> 
 
+/* CONFIGURATION */
+
+// Max number of MIDI messages to queue
 #define MIDI_QUEUE_SIZE 8
+
+// Enable MIDI echoing
+// This allows debugging of MIDI interface when connected to PC
+// Requires terminal software capable of setting 31250 baud
+//#define MIDI_ECHO
+
+/* END-OF-CONFIG */
 
 // High performance digitalWrite
 #define pinPort( P ) ( ( P ) <= 7 ? &PORTD : ( ( P ) <= 13 ? &PORTB : &PORTC ) )
@@ -22,10 +32,9 @@
 
 // Pin declarations
 #define PCM_LCH 10 // Shift register latch
-#define PCM_SDA A3 // Shift register data
-#define PCM_CLK 13 // Shift register clock (PCM)
-#define FLT_CLK A5 // Shift register clock (Filter select)
-#define FLT_WR  12 // Filter write
+#define PCM_SDA 11 // Shift register data
+#define PCM_CLK 13 // Shift register clock
+#define FLT_WR   4 // Filter write
 #define FLT_D0   8 // Filter data 0
 #define FLT_D1   9 // Filter data 1
 #define FLT_A0  A2 // Filter address 0
@@ -33,7 +42,7 @@
 #define FLT_A2   5 // Filter address 2
 #define FLT_A3   7 // Filter address 3
 #define FLT_F0   6 // Filter clock 0
-#define FLT_F1  11 // Filter clock 1
+#define FLT_F1   3 // Filter clock 1
 
 enum filter_e {
   FILTER_LP = 0x01,

@@ -38,7 +38,6 @@ const float noteTable[] = {
 static const uint8_t len_channel[ 8 ] = { 2, 2, 2, 2, 1, 1, 2, 0 };
 static const uint8_t len_system[ 8 ]  = { SYSEX, 1, 2, 1, 0, 0, 0, 0 };
 
-static uint8_t pcm = 0x80;
 static uint8_t typebits;
 
 static uint8_t midi_length;
@@ -78,38 +77,23 @@ ISR( TIMER1_COMPA_vect ) {
   uint8_t register temp; // temp is used to promote optimized code where the
                          // compiler decides to do 16-bit operations on 8-bit
                          // variables. temp increases performance by ~5%.
+
+  // Latch out previous sample & filter selection
   fastWrite( PCM_LCH, HIGH );
   fastWrite( PCM_LCH, LOW );
-  fastWrite( PCM_CLK, LOW );
-  fastWrite( PCM_SDA, ( pcm & 0x80 ) );
-  fastWrite( PCM_CLK, HIGH );
-  fastWrite( PCM_CLK, LOW );
-  fastWrite( PCM_SDA, ( pcm & 0x40 ) );
-  fastWrite( PCM_CLK, HIGH );
-  fastWrite( PCM_CLK, LOW );
-  fastWrite( PCM_SDA, ( pcm & 0x20 ) );
-  fastWrite( PCM_CLK, HIGH );
-  fastWrite( PCM_CLK, LOW );
-  fastWrite( PCM_SDA, ( pcm & 0x10 ) );
-  fastWrite( PCM_CLK, HIGH );
-  fastWrite( PCM_CLK, LOW );
-  fastWrite( PCM_SDA, ( pcm & 0x08 ) );
-  fastWrite( PCM_CLK, HIGH );
-  fastWrite( PCM_CLK, LOW );
-  fastWrite( PCM_SDA, ( pcm & 0x04 ) );
-  fastWrite( PCM_CLK, HIGH );
-  fastWrite( PCM_CLK, LOW );
-  fastWrite( PCM_SDA, ( pcm & 0x02 ) );
-  fastWrite( PCM_CLK, HIGH );
-  fastWrite( PCM_CLK, LOW );
-  fastWrite( PCM_SDA, ( pcm & 0x01 ) );
-  fastWrite( PCM_CLK, HIGH );
+  
+  // Shift out filter selection
+  SPDR = typebits;
   
   // Check UART for available data, ignore errors
-  temp = UCSR0A & RXC0;
+  temp = UCSR0A & ( 1 << RXC0 );
+  
   if( temp ) {
     // Read byte from UART
     data = UDR0;
+#ifdef MIDI_ECHO
+    UDR0 = data;
+#endif
     // SYSEX gets stored in midi_length when a system-exclusive arrives
     if( midi_length == ( uint8_t )SYSEX ) {
       // Ignore until end of system-exclusive is received
@@ -161,7 +145,8 @@ ISR( TIMER1_COMPA_vect ) {
       }
     }
   }
-  pcm = sample();
+  // Shift out sample
+  SPDR = sample();
 }
 
 void Synth_Class::begin( uint16_t sample_rate ) {
@@ -174,7 +159,6 @@ void Synth_Class::begin( uint16_t sample_rate ) {
   pinMode( PCM_LCH, OUTPUT );
   pinMode( PCM_SDA, OUTPUT );
   pinMode( PCM_CLK, OUTPUT );
-  pinMode( FLT_CLK, OUTPUT );
   pinMode( FLT_F0,  OUTPUT );
   pinMode( FLT_F1,  OUTPUT );
   pinMode( FLT_WR,  OUTPUT );
@@ -185,18 +169,20 @@ void Synth_Class::begin( uint16_t sample_rate ) {
   pinMode( FLT_A2,  OUTPUT );
   pinMode( FLT_A3,  OUTPUT );
 
+	cli();
+
   // Disable all timer interrupts 
   TIMSK0 = 0;
   TIMSK1 = 0;
   TIMSK2 = 0;
 
+  // Enable SPI
+  SPCR = 0b01010000; 
+  SPSR = 0b00000001;
+
   // Set up timers (T0, T1) to generate filter clock
   TCCR0A = 0b01000010;
   TCCR0B = 0b00000001;
-
-//  TCCR2A = 0b01000010;
-//  TCCR2B = 0b00000001;
-  // Test for output on T0B instead of T0A
   TCCR2A = 0b00010010;
   TCCR2B = 0b00000001;
   OCR0B  = 0;
@@ -225,7 +211,7 @@ void Synth_Class::begin( uint16_t sample_rate ) {
   Serial.begin( 31250 );
 
   // Disable default Arduino Serial.read behaviour
-  UCSR0B &= ~RXCIE0;
+  UCSR0B &= ~( 1 << RXCIE0 );
 
   // Enable interrupts
   sei();  	
@@ -252,44 +238,18 @@ void Synth_Class::setFilter( uint8_t filter, uint8_t type ) {
     typebits &= 0x38;
     typebits |= type;
   }
-  cli();
-  fastWrite( PCM_LCH, HIGH );
-  fastWrite( PCM_LCH, LOW );
-  fastWrite( FLT_CLK, LOW );
-  fastWrite( FLT_CLK, HIGH );
-  fastWrite( FLT_CLK, LOW );
-  fastWrite( FLT_CLK, HIGH );
-  fastWrite( FLT_CLK, LOW );
-  fastWrite( PCM_SDA, ( typebits & 0x20 ) );
-  fastWrite( FLT_CLK, HIGH );
-  fastWrite( FLT_CLK, LOW );
-  fastWrite( PCM_SDA, ( typebits & 0x10 ) );
-  fastWrite( FLT_CLK, HIGH );
-  fastWrite( FLT_CLK, LOW );
-  fastWrite( PCM_SDA, ( typebits & 0x08 ) );
-  fastWrite( FLT_CLK, HIGH );
-  fastWrite( FLT_CLK, LOW );
-  fastWrite( PCM_SDA, ( typebits & 0x04 ) );
-  fastWrite( FLT_CLK, HIGH );
-  fastWrite( FLT_CLK, LOW );
-  fastWrite( PCM_SDA, ( typebits & 0x02 ) );
-  fastWrite( FLT_CLK, HIGH );
-  fastWrite( FLT_CLK, LOW );
-  fastWrite( PCM_SDA, ( typebits & 0x01 ) );
-  fastWrite( FLT_CLK, HIGH );
-  sei();
 }  
 
 // Sets the center frequency using a direct (much faster) approach
 void Synth_Class::setClock( uint8_t filter, uint8_t psb, uint8_t ocr ) {
     if( filter ) {
-      TCCR2B = ( TCCR2B & 0xF8 ) | psb;
-      OCR2A = ocr;
-      TCNT2 = 0;
-    } else {
       TCCR0B = ( TCCR0B & 0xF8 ) | psb;
       OCR0A = ocr;
       TCNT0 = 0;
+    } else {
+      TCCR2B = ( TCCR2B & 0xF8 ) | psb;
+      OCR2A = ocr;
+      TCNT2 = 0;
     }
 }
 
@@ -318,19 +278,19 @@ void Synth_Class::setCutoff( uint8_t filter, float freq ) {
 	}
 	lb = ( ( ( float )( F_CPU / 2 ) ) / ( freq * ps ) ) - 1;
 	if( filter ) {
-		if( psbm[ 1 ] != psb ) {
-		  psbm[ 1 ] = psb;
-  		TCCR2B = ( TCCR2B & 0xF8 ) | psb;
-		}
-		OCR2A = lb;
-		TCNT2 = 0;
-	} else {
 		if( psbm[ 0 ] != psb ) {
 		  psbm[ 0 ] = psb;
   		TCCR0B = ( TCCR2B & 0xF8 ) | psb;
   	}
 		OCR0A = lb;
 		TCNT0 = 0;
+	} else {
+		if( psbm[ 1 ] != psb ) {
+		  psbm[ 1 ] = psb;
+  		TCCR2B = ( TCCR2B & 0xF8 ) | psb;
+		}
+		OCR2A = lb;
+		TCNT2 = 0;
 	}
 }
 

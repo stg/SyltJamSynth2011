@@ -200,6 +200,8 @@ void p_rem( uint8_t m ) {
   }
 }
 
+byte ooo;
+
 uint8_t sample( void ) {
   register int16_t vout;       // voice out
   register int16_t aout;       // accumulated out
