@@ -1,0 +1,5 @@
+Layers: 2
+Width: 79.38
+Height: 53.34
+Holes: 309
+Silk: Top only
