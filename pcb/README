@@ -1,2 +1,5 @@
-PCB and Schematic design files for the commercial SyltJamSynth2011.
-Files are in DipTrace format.
+Schematic and PCB files in DipTrace format.
+A limited version of DipTrace is available as freeware.
+
+rev1.* Board revision 1 - internal prototype boards
+rev2.* Board revision 2 - first batch of 50 units to be sold

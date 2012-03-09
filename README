@@ -1,4 +1,15 @@
-Code for the 2011 SyltJamSynth.
+This repository contains all relevant design information for the SyltJamSynth2011.
 
-This is the source code for the commercial version of the SyltJamSynth.
-For the original DIY version (described at forskningsavd.se), refer to the ./diy/ folder.
+The SJS11 is a digital software synthersizer with a dual analog filter designed as a shield for the Arduino Uno.
+
+The name comes from the fact that it was designed during the SyltJam 2011 event at STPLN.
+SyltJam is an annual LAN-party like weekend event for synth-geeks in Malmö, Sweden.
+
+The original DIY version is described at http://wiki.forskningsavd.se/SyltJamSynth
+Source code for the DIY version can be found in the ./diy/ folder.
+
+All other files relate to the "commercial" version, and these include:
+./pcb/              Schematic and PCB (DipTrace format) and gerber+excellon manufacturing files
+./doc/              Documentation and manual
+./arduino-library/  API for the Arduino IDE
+./arduino-sketches/ Synth firmware (SyltCode/SyltFirmware)
