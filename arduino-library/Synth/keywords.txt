@@ -18,8 +18,14 @@ setCutoff	KEYWORD2
 setMode	KEYWORD2
 setShift	KEYWORD2
 setResonance	KEYWORD2
-sample	KEYWORD2
-readMidi	KEYWORD2
+popMidi	KEYWORD2
+freeMidi	KEYWORD2
+midiAvailable	KEYWORD2
+midiRead	KEYWORD2
+midiMessage	KEYWORD2
+midiChannel	KEYWORD2
+midiData1	KEYWORD2
+midiData2	KEYWORD2
 
 #######################################
 # Instances (KEYWORD2)

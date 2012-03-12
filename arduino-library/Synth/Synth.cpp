@@ -1,11 +1,10 @@
 /*!
- *  @file		  Synth.cpp
- *  Project		Synth Library
- *	@brief		Synth Library for the Arduino
- *	Version		1.0
- *  @author		Davey Taylor
- *	@date		  2012-03-06 (YYYY-MM-DD)
- *  License		GPL Forty Seven Effects - 2011
+ *  @file     Synth.cpp
+ *  Project   Synth Library
+ *  @brief    Synth Library for the Arduino
+ *  Version   1.0
+ *  @author   Davey Taylor
+ *  @date     2012-03-06 (YYYY-MM-DD)
  */
 
 #include "Synth.h"
@@ -43,11 +42,14 @@ static uint8_t typebits;
 static uint8_t midi_length;
 static uint8_t midi_count;
 static midi_t midi;
+static midi_t midi_read;
 
 static midi_t queue[ MIDI_QUEUE_SIZE ];
 static midi_t *p_queue_head = queue;
 static midi_t *p_queue_tail = queue;
 static uint8_t volatile midi_free = MIDI_QUEUE_SIZE;
+
+static uint8_t ( *p_sampler )();
 
 // Pushes a complete MIDI message into queue
 // temp is only used when pushing interleaved real-time messages
@@ -146,14 +148,16 @@ ISR( TIMER1_COMPA_vect ) {
     }
   }
   // Shift out sample
-  SPDR = sample();
+  SPDR = p_sampler();
 }
 
-void Synth_Class::begin( uint16_t sample_rate ) {
+void Synth_Class::attachInterrupt( uint8_t ( *p_cb )(), uint16_t sample_rate ) {
   uint16_t isr_rr;
 
   // Requires a minimum of 3125 for MIDI
   if( sample_rate < 3125 ) sample_rate = 3125;
+
+  p_sampler = p_cb;
 
   // Set pin modes
   pinMode( PCM_LCH, OUTPUT );
@@ -169,7 +173,7 @@ void Synth_Class::begin( uint16_t sample_rate ) {
   pinMode( FLT_A2,  OUTPUT );
   pinMode( FLT_A3,  OUTPUT );
 
-	cli();
+  cli();
 
   // Disable all timer interrupts 
   TIMSK0 = 0;
@@ -214,19 +218,48 @@ void Synth_Class::begin( uint16_t sample_rate ) {
   UCSR0B &= ~( 1 << RXCIE0 );
 
   // Enable interrupts
-  sei();  	
+  sei();    
 }
 
-midi_t* Synth_Class::readMidi( void ) {
+uint8_t Synth_Class::midiAvailable( void ) {
+  return MIDI_QUEUE_SIZE - midi_free;
+}
+
+void Synth_Class::midiRead( void ) {
+  midi_read = *p_queue_tail;
+  if( ++p_queue_tail ==  &queue[ MIDI_QUEUE_SIZE ] ) p_queue_tail = queue;
+  midi_free++;
+}
+
+uint8_t Synth_Class::midiMessage( void ) {
+  return midi_read.message;
+}
+
+uint8_t Synth_Class::midiChannel( void ) {
+  return midi_read.channel;
+}
+
+uint8_t Synth_Class::midiData1( void ) {
+  return midi_read.data1;
+}
+
+uint8_t Synth_Class::midiData2( void ) {
+  return midi_read.data2;
+}
+
+midi_t* Synth_Class::getMidi( void ) {
   midi_t *p_midi;
   if( midi_free != MIDI_QUEUE_SIZE ) {
     p_midi = p_queue_tail;
-    if( ++p_queue_tail ==  &queue[ MIDI_QUEUE_SIZE ] ) p_queue_tail = queue;
-    midi_free++;
   } else {
     p_midi = NULL;
   }
   return p_midi;
+}
+
+void Synth_Class::freeMidi( void ) {
+  if( ++p_queue_tail ==  &queue[ MIDI_QUEUE_SIZE ] ) p_queue_tail = queue;
+  midi_free++;
 }
 
 // Sets the filter FILTER_LP/FILTER_BP/FILTER_HP for filter 0...1
@@ -255,43 +288,43 @@ void Synth_Class::setClock( uint8_t filter, uint8_t psb, uint8_t ocr ) {
 
 // Sets the center frequency 4...40000hz for filter 0...1
 void Synth_Class::setCutoff( uint8_t filter, float freq ) {
-	float ps;
-	uint8_t psb, lb;
-	static uint8_t psbm[ 2 ] = { 0x7, 0x7 };
-	freq *= 150.8;
-	if( freq < 31250.0 ) {
-		if( freq < 3905.25 ) {
-			if( freq < 488.28125 ) {
-				if( freq < 122.0703125 ) {
-					ps = 1024.0; psb = 5;
-				} else {
-					ps = 256.0; psb = 4;
-				}
-			} else {
-				ps = 64.0; psb = 3;
-			}
-		} else {
-			ps = 8.0; psb = 2;
-		}
-	} else {
-		ps = 1.0; psb = 1;
-	}
-	lb = ( ( ( float )( F_CPU / 2 ) ) / ( freq * ps ) ) - 1;
-	if( filter ) {
-		if( psbm[ 0 ] != psb ) {
-		  psbm[ 0 ] = psb;
-  		TCCR0B = ( TCCR2B & 0xF8 ) | psb;
-  	}
-		OCR0A = lb;
-		TCNT0 = 0;
-	} else {
-		if( psbm[ 1 ] != psb ) {
-		  psbm[ 1 ] = psb;
-  		TCCR2B = ( TCCR2B & 0xF8 ) | psb;
-		}
-		OCR2A = lb;
-		TCNT2 = 0;
-	}
+  float ps;
+  uint8_t psb, lb;
+  static uint8_t psbm[ 2 ] = { 0x7, 0x7 };
+  freq *= 150.8;
+  if( freq < 31250.0 ) {
+    if( freq < 3905.25 ) {
+      if( freq < 488.28125 ) {
+        if( freq < 122.0703125 ) {
+          ps = 1024.0; psb = 5;
+        } else {
+          ps = 256.0; psb = 4;
+        }
+      } else {
+        ps = 64.0; psb = 3;
+      }
+    } else {
+      ps = 8.0; psb = 2;
+    }
+  } else {
+    ps = 1.0; psb = 1;
+  }
+  lb = ( ( ( float )( F_CPU / 2 ) ) / ( freq * ps ) ) - 1;
+  if( filter ) {
+    if( psbm[ 0 ] != psb ) {
+      psbm[ 0 ] = psb;
+      TCCR0B = ( TCCR2B & 0xF8 ) | psb;
+    }
+    OCR0A = lb;
+    TCNT0 = 0;
+  } else {
+    if( psbm[ 1 ] != psb ) {
+      psbm[ 1 ] = psb;
+      TCCR2B = ( TCCR2B & 0xF8 ) | psb;
+    }
+    OCR2A = lb;
+    TCNT2 = 0;
+  }
 }
 
 // Sets mode for filter 0...1 to 0...3

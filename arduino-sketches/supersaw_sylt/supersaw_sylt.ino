@@ -285,13 +285,13 @@ void pitch_set( uint8_t ch, float f ) {
 }
 
 void setup( void ) {
-  Synth.begin( SAMPLE_FREQ );
+  Synth.attachInterrupt( sample, SAMPLE_FREQ );
 }
 
 void loop( void ) {
   int16_t temp;
   uint8_t n;
-  midi_t *midi = Synth.readMidi();
+  midi_t *midi = Synth.getMidi();
   
   if( midi ) {
     // switch message type
@@ -430,6 +430,7 @@ void loop( void ) {
         }
         break;
     }
+    Synth.freeMidi();
   }
 
   // run once for every 1/50 second
