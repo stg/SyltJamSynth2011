@@ -1,3 +1,5 @@
+#include "avr/pgmspace.h"
+
 /*
   This work is published under the Creative Commons BY-NC license available at:
   http://creativecommons.org/licenses/by-nc/3.0/
@@ -16,9 +18,12 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#ifdef HQ
+#include <Math.h>
+#endif
 
 // Intended playback rate
-#define SAMPLE_RATE 44100
+#define SAMPLE_RATE 48000
 
 // Amiga period range (used for clamping)
 #define PERIOD_MIN 54  // 54 is a modern limit, use 113 for full compatibility
@@ -38,20 +43,22 @@
 #define SYS_FREQ PAL_FREQ
 
 // ProTracker sample header
-typedef struct {
+//#pragma pack(push)
+//#pragma pack(1)
+typedef struct __attribute__((packed)) {
   int8_t   name[ 22 ];      // Name
   uint8_t  length_msb;      // Length in words
   uint8_t  length_lsb;
   uint8_t  tuning;          // Fine-tune value
   uint8_t  volume;          // Default volume
-  uint16_t loop_offset_msb; // Loop point in words
-  uint16_t loop_offset_lsb;
-  uint16_t loop_len_msb;    // Loop length in words
-  uint16_t loop_len_lsb;
+  uint8_t loop_offset_msb; // Loop point in words
+  uint8_t loop_offset_lsb;
+  uint8_t loop_len_msb;    // Loop length in words
+  uint8_t loop_len_lsb;
 } pts_t;
 
 // ProTracker module header
-typedef struct {
+typedef struct __attribute__((packed)) {
   int8_t   name[ 20 ];    // Name
   pts_t    sample[ 31 ];  // Samples
   uint8_t  order_count;   // Song length
@@ -59,6 +66,7 @@ typedef struct {
   uint8_t  order[ 128 ];  // Pattern order list
   int8_t   ident[ 4 ];    // Identifier (always "M.K.")
 } ptm_t;
+//#pragma pack(pop)
 
 // Sample definition
 typedef struct {
@@ -103,9 +111,10 @@ typedef struct {
   int8_t *pc;     // Point C (pb reload @end)
   uint8_t active; // Channel is playing
   bool    loop;   // Loop when reached point B
-  uint16_t rate;  // Rate/frequency
+  float   rate;  // Rate/frequency
   uint8_t volume; // Volume
   int8_t *addr;   // Current address (fractional)
+  float   offset;
 } dma_t;
 
 static ptm_t *p_mod;
@@ -119,12 +128,11 @@ static uint8_t delay = 0;
 static fxm_t fxm[ 4 ];
 static dma_t dma[ 4 ];
 static uint16_t ctr = 0;
-static uint16_t cia = 882;
-
+static uint16_t cia = SAMPLE_RATE / ( ( 24 * 125 ) / 60 );
 static sample_t sample[ 31 ];
 
 // ProTracker(+1 octave) period tables for each finetune value
-static const uint16_t period_tbl[ 16 ][ 48 ] = {
+static const uint16_t period_tbl[ 16 ][ 48 ] PROGMEM = {
   { 856, 808, 762, 720, 678, 640, 604, 570, 538, 508, 480, 453, 428, 404, 381, 360, 339, 320, 302, 285, 269, 254, 240, 226, 214, 202, 190, 180, 170, 160, 151, 143, 135, 127, 120, 113, 107, 101,  95, 90, 85, 80, 76, 71, 67, 64, 60, 57 },
   { 850, 802, 757, 715, 674, 637, 601, 567, 535, 505, 477, 450, 425, 401, 379, 357, 337, 318, 300, 284, 268, 253, 239, 225, 213, 201, 189, 179, 169, 159, 150, 142, 134, 126, 119, 113, 106, 100,  95, 89, 84, 80, 75, 71, 67, 63, 60, 56 },
   { 844, 796, 752, 709, 670, 632, 597, 563, 532, 502, 474, 447, 422, 398, 376, 355, 335, 316, 298, 282, 266, 251, 237, 224, 211, 199, 188, 177, 167, 158, 149, 141, 133, 125, 118, 112, 106, 100,  94, 89, 84, 79, 75, 70, 66, 63, 59, 56 },
@@ -143,7 +151,7 @@ static const uint16_t period_tbl[ 16 ][ 48 ] = {
   { 862, 814, 768, 725, 684, 646, 610, 575, 543, 513, 484, 457, 431, 407, 384, 363, 342, 323, 305, 288, 272, 256, 242, 228, 216, 203, 192, 181, 171, 161, 152, 144, 136, 128, 121, 114, 108, 102,  96, 91, 86, 81, 76, 72, 68, 64, 60, 57 }
 };
 // ProTracker sine table, could be replaced by realtime Math.sin( n * Math.PI / 32 )
-static const int8_t sine[ 64 ] = {
+static const int8_t sine[ 64 ] PROGMEM = {
   0x00, 0x0C, 0x18, 0x25, 0x30, 0x3C, 0x47, 0x51, 0x5A, 0x62, 0x6A, 0x70, 0x76, 0x7A, 0x7D, 0x7F,
   0x7F, 0x7F, 0x7D, 0x7A, 0x76, 0x70, 0x6A, 0x62, 0x5A, 0x51, 0x47, 0x3C, 0x30, 0x25, 0x18, 0x0C,
   0x00, 0xF3, 0xE7, 0xDA, 0xCF, 0xC3, 0xB8, 0xAE, 0xA5, 0x9D, 0x95, 0x8F, 0x89, 0x85, 0x82, 0x80,
@@ -213,6 +221,7 @@ static void note_start( dma_t *p_dma, uint8_t ix_sample, uint16_t period, uint8_
   p_dma->loop      = sample[ ix_sample ].loop;
   p_dma->active    = true;
   p_dma->addr      = p_dma->pa;
+  p_dma->offset    = 0;
   // Set loop-point
   p_dma->pa        = sample[ ix_sample ].pd;
 }
@@ -231,7 +240,7 @@ static void play_module() {
   
   // Advance tick
   if( ++tick == speed ) tick = 0;
-  
+    
   // Handle row delay
   if( delay ) {
     if( tick == 0 ) delay--;
@@ -257,9 +266,11 @@ static void play_module() {
   }
 
   // Set up pointers
-  p_ptn = ( ( uint8_t* )&p_mod ) + sizeof( ptm_t )
+  p_ptn = ( ( uint8_t* )p_mod )
+        + sizeof( ptm_t )
         + ( p_mod->order[ ix_order ] << 10 )
         + ( ix_row << 4 );
+        
   p_fxm = fxm;
   p_dma = dma;
 
@@ -301,12 +312,6 @@ static void play_module() {
     }
     
     if( tick == ( fx == 0xED ? fxp : 0 ) ) {
-      // Set tuning
-      if( fx == 0xE5 ) sample[ p_fxm->sample ].tuning = fxp;
-      // Reset oscillators
-      if( ( p_fxm->vibr.mode & 0x4 ) == 0x0 ) p_fxm->vibr.offset = 0;
-      if( ( p_fxm->trem.mode & 0x4 ) == 0x0 ) p_fxm->trem.offset = 0;
-
       if( ix_sample != 0 ) {
         // Cell has sample
         temp_b = ix_sample - 1;
@@ -315,7 +320,13 @@ static void play_module() {
         // Reset volume
         p_dma->volume = sample[ temp_b ].volume;
       }
-  
+
+      // Set tuning
+      if( fx == 0xE5 ) sample[ p_fxm->sample ].tuning = fxp;
+      // Reset oscillators
+      if( ( p_fxm->vibr.mode & 0x4 ) == 0x0 ) p_fxm->vibr.offset = 0;
+      if( ( p_fxm->trem.mode & 0x4 ) == 0x0 ) p_fxm->trem.offset = 0;
+
       if( ix_period != 0x7F ) {
         // Cell has note
         if( fx == 0x30 || fx == 0x50 ) {
@@ -353,6 +364,7 @@ static void play_module() {
         case 0xF0: // Set speed
           if( fxp > 0x20 ) {
             cia = SAMPLE_RATE / ( ( 24 * fxp ) / 60 );
+            printf( "%i\n",cia );
           } else {
             speed = fxp;
           }
@@ -474,18 +486,19 @@ void mod_reset() {
   ix_order = 0;
   delay = 0;
   ctr = 0;
-  cia = 882;
+  cia = SAMPLE_RATE / ( ( 24 * 125 ) / 60 );
+  printf( "%i\n", cia );
 }
 
 // Loads a module
-void mod_load( void *p_data ) {
+void mod_load( const void *p_data ) {
   uint8_t   n;
   int8_t   *p_audio;
   sample_t *p_sample = sample;
   size_t    loop_offset, loop_len;
   uint8_t   patterns = 0;
   
-  p_mod = p_data;
+  p_mod = ( ptm_t* )p_data;
 
   // Find pattern count
   for( n = 0; n < 128; n++ ) {
@@ -515,9 +528,88 @@ void mod_load( void *p_data ) {
   mod_reset();
 }
 
+#ifdef HQ
 // Returns realtime sample data
+int16_t mod_sample() {
+  uint8_t ch;
+  dma_t *p_dma;
+  float lsample, rsample;
+  float delta, dsample;
+  float lmix = 0, rmix = 0;
+  float mmix;
+  static float merr = 0;
+  int16_t out;
+  
+  if( ctr-- == 0 ) {
+    ctr = cia;
+    play_module();
+  }
+
+  p_dma = dma;
+  for( ch = 0; ch != 4; ch++ ) {
+    if( p_dma->active ) {
+      p_dma->offset += p_dma->rate;
+      if( p_dma->addr + ( size_t )p_dma->offset >= p_dma->pb ) {
+        if( p_dma->loop ) {
+          p_dma->offset += p_dma->pa - p_dma->pb;
+          p_dma->pb = p_dma->pc;
+        } else {
+          p_dma->offset = p_dma->pb - 1 - p_dma->pa;
+          p_dma->active = false;
+        }
+      }
+
+      // Get interpolation samples
+      lsample = ( float )*( p_dma->addr + 0 + ( size_t )p_dma->offset );
+      if( p_dma->addr + ( size_t )p_dma->offset >= ( p_dma->pb - 1 ) ) {
+        rsample = ( float )*( p_dma->addr );
+      } else {
+        if( p_dma->loop ) {
+          rsample = ( float )*( p_dma->addr + 1 + ( size_t )p_dma->offset );
+        } else {
+          rsample = lsample;
+        }
+      }
+      
+      // Interpolate
+      delta = p_dma->offset - floor( p_dma->offset );
+      dsample = lsample * ( 1.0f - delta ) + ( rsample * delta );
+      
+      // Apply volume
+      dsample *= ( float )p_dma->volume;
+      
+      // Channel mix
+      if( ch == 0 || ch == 3 ) {
+        lmix += dsample;
+      } else {
+        rmix += dsample;
+      }
+      
+    }
+
+    p_dma++;
+  }
+  
+  // Mix
+  mmix = lmix + rmix;
+  out = ( int16_t )round( mmix );
+
+  // Apply dithering
+  if( ( ( ( float )rand() ) / RAND_MAX ) < abs( merr ) ) {
+    if( merr > 0 ) {
+      out -= 1;
+    } else {
+      out += 1;
+    }
+  }
+  merr += ( float )out - mmix;
+  
+  return out;
+}
+
+#else
 int8_t mod_sample() {
-  uint8_t ch = 0;
+  uint8_t ch;
   dma_t *p_dma;
   int16_t left = 0, right = 0;
   
@@ -527,27 +619,29 @@ int8_t mod_sample() {
   }
 
   p_dma = dma;
-  while( ch != 4 ) {
+  for( ch = 0; ch != 4; ch++ ) {
     if( p_dma->active ) {
-      p_dma->addr += p_dma->rate;
-      if( p_dma->addr >= p_dma->pb ) {
+      p_dma->offset += p_dma->rate;
+      if( p_dma->addr + ( size_t )p_dma->offset >= p_dma->pb ) {
         if( p_dma->loop ) {
-          p_dma->addr += p_dma->pa - p_dma->pb;
+          p_dma->offset += p_dma->pa - p_dma->pb;
           p_dma->pb = p_dma->pc;
         } else {
-          p_dma->addr = p_dma->pb - 1;
+          p_dma->offset = p_dma->pb - 1 - p_dma->pa;
           p_dma->active = false;
         }
       }
+      if( ch == 0 || ch == 3 ) {
+        left += *( p_dma->addr + ( size_t )p_dma->offset ) * p_dma->volume;
+      } else {
+        right += *( p_dma->addr + ( size_t )p_dma->offset ) * p_dma->volume;
+      }
+
     }
 
-    if( ch == 0 || ch == 3 ) {
-      left += *p_dma->addr * p_dma->volume;
-    } else {
-      right += *p_dma->addr * p_dma->volume;
-    }
     p_dma++;
   }
   
-  return left + right;
+  return ( left + right ) / 256;
 }
+#endif
