@@ -1,11 +1,13 @@
+#ifdef __cplusplus
 extern "C" {
+#endif
 #include "stdint.h"
-//#define HQ // High quality sampler (16-bit, interpolation, dithering)
+// Intended playback rate
+#define SAMPLE_RATE 8000
+
 void mod_load( const void *p_data );
 void mod_reset( void );
-#ifdef HQ
-int16_t mod_sample( void );
-#else
 int8_t mod_sample( void );
-#endif
+#ifdef __cplusplus
 }
+#endif

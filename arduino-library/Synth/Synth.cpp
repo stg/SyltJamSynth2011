@@ -180,11 +180,7 @@ void Synth_Class::attachInterrupt( uint8_t ( *p_cb )(), uint16_t sample_rate ) {
   TIMSK1 = 0;
   TIMSK2 = 0;
 
-  // Enable SPI
-  SPCR = 0b01010000; 
-  SPSR = 0b00000001;
-
-  // Set up timers (T0, T1) to generate filter clock
+  // Set up timers (T0, T2) to generate filter clock
   TCCR0A = 0b01000010;
   TCCR0B = 0b00000001;
   TCCR2A = 0b00010010;
@@ -199,23 +195,27 @@ void Synth_Class::attachInterrupt( uint8_t ( *p_cb )(), uint16_t sample_rate ) {
   OCR1AL = isr_rr & 0xFF;
   TIMSK1 = 1 << OCIE1A;    // Enable interrupt
 
-  // Set filter defaults
-  setMode( 0, 0 );
-  setMode( 1, 0 );
-  setResonance( 0, 0x14 );
-  setResonance( 1, 0x14 );
-  setShift( 0, 0x20 );
-  setShift( 1, 0x20 );
-  setCutoff( 0, 10000 );
-  setCutoff( 1, 10000 );
-  setFilter( 0, FILTER_HP );
-  setFilter( 1, FILTER_LP );
+  // Enable SPI
+  SPCR = 0b01010000; 
+  SPSR = 0b00000001;
 
   // Enable serial(MIDI) communication
   Serial.begin( 31250 );
 
   // Disable default Arduino Serial.read behaviour
   UCSR0B &= ~( 1 << RXCIE0 );
+
+  // Set filter defaults
+  setResonance( 0, 0x14 );
+  setResonance( 1, 0x14 );
+  setShift( 0, 0x20 );
+  setShift( 1, 0x20 );
+  setCutoff( 0, 200 );
+  setCutoff( 1, 10000 );
+  setFilter( 0, FILTER_HP );
+  setFilter( 1, FILTER_LP );
+  setMode( 0, 2 );
+  setMode( 1, 0 );
 
   // Enable interrupts
   sei();    

@@ -1,5 +1,5 @@
 #include "avr/pgmspace.h"
-
+#include "addressed_memory.h"
 /*
   This work is published under the Creative Commons BY-NC license available at:
   http://creativecommons.org/licenses/by-nc/3.0/
@@ -22,8 +22,8 @@
 #include <Math.h>
 #endif
 
-// Intended playback rate
-#define SAMPLE_RATE 48000
+#define ROM_READB( ptr ) pgm_read_byte( ptr )
+#define ROM_READW( ptr ) pgm_read_word( ptr )
 
 // Amiga period range (used for clamping)
 #define PERIOD_MIN 54  // 54 is a modern limit, use 113 for full compatibility
@@ -78,7 +78,7 @@ typedef struct {
   int8_t   mode;
   uint8_t  volume;
   uint8_t  tuning;
-  size_t   length;
+  intptr_t length;
 } sample_t;
 
 // Oscillator memory
@@ -111,10 +111,9 @@ typedef struct {
   int8_t *pc;     // Point C (pb reload @end)
   uint8_t active; // Channel is playing
   bool    loop;   // Loop when reached point B
-  float   rate;  // Rate/frequency
+  float   rate;   // Rate/frequency
   uint8_t volume; // Volume
-  int8_t *addr;   // Current address (fractional)
-  float   offset;
+  float   addr;   // Current address (fractional)
 } dma_t;
 
 static ptm_t *p_mod;
@@ -165,7 +164,7 @@ static int8_t do_osc( osc_t *p_osc ) {
   
   switch( p_osc->mode & 0x03 ) {
     case 0: // Sine
-      sample = sine[ ( p_osc->offset ) & 0x3F ];
+      sample = ROM_READB( &sine[ ( p_osc->offset ) & 0x3F ] );
       if( sample > 127 ) sample -= 256;
       break;
     case 1: // Square
@@ -188,10 +187,10 @@ static uint16_t arpeggio( uint8_t ch, uint8_t halftones ) {
   uint8_t n, tuning = sample[ fxm[ ch ].sample ].tuning;
   // Find base note
   for( n = 0; n != 47; n++ ) {
-    if( fxm[ ch ].period >= period_tbl[ tuning ][ n ] ) break;
+    if( fxm[ ch ].period >= ROM_READW( &period_tbl[ tuning ][ n ] ) ) break;
   }
   // Clamp and return arpeggio period
-  return period_tbl[ tuning ][ MIN( n + halftones, 47 ) ];
+  return ROM_READW( &period_tbl[ tuning ][ MIN( n + halftones, 47 ) ] );
 }
 
 // Calculates and returns glissando period
@@ -199,14 +198,14 @@ static uint16_t glissando( uint8_t ch ) {
   uint8_t n, tuning = sample[ fxm[ ch ].sample ].tuning;
   // Round off to nearest note period
   for( n = 0; n != 47; n++ ) {
-    if( fxm[ ch ].period < period_tbl[ tuning ][ n ] &&
-        fxm[ ch ].period >= period_tbl[ tuning ][ n + 1 ] ) {
-      if( period_tbl[ tuning ][ n ] - fxm[ ch ].period > fxm[ ch ].period - period_tbl[ tuning ][ n + 1 ] ) n++;
+    if( fxm[ ch ].period < ROM_READW( &period_tbl[ tuning ][ n ] ) &&
+        fxm[ ch ].period >= ROM_READW( &period_tbl[ tuning ][ n + 1 ] ) ) {
+      if( ROM_READW( &period_tbl[ tuning ][ n ] ) - fxm[ ch ].period > fxm[ ch ].period - ROM_READW( &period_tbl[ tuning ][ n + 1 ] ) ) n++;
       break;
     }
   }
   // Clamp and return arpeggio period
-  return period_tbl[ tuning ][ n ];
+  return ROM_READW( &period_tbl[ tuning ][ n ] );
 }
 
 // Sets up and starts a DMA channel
@@ -216,12 +215,11 @@ static void note_start( dma_t *p_dma, uint8_t ix_sample, uint16_t period, uint8_
   p_dma->pb        = sample[ ix_sample ].pb;
   p_dma->pc        = sample[ ix_sample ].pc;
   // Set reload register (defines rate)
-  p_dma->rate      = SYS_FREQ / period_tbl[ sample[ ix_sample ].tuning ][ period ];
+  p_dma->rate      = SYS_FREQ / ROM_READW( &period_tbl[ sample[ ix_sample ].tuning ][ period ] );
   // Set mode (begin playback)
   p_dma->loop      = sample[ ix_sample ].loop;
   p_dma->active    = true;
-  p_dma->addr      = p_dma->pa;
-  p_dma->offset    = 0;
+  p_dma->addr      = ( float )( intptr_t )p_dma->pa;
   // Set loop-point
   p_dma->pa        = sample[ ix_sample ].pd;
 }
@@ -251,7 +249,7 @@ static void play_module() {
   if( tick == 0 ) {
     if( ++ix_row == 64 ) {
       ix_row = 0;
-      if( ++ix_order == p_mod->order_count ) ix_order = 0;
+      if( ++ix_order == ROM_READB( &p_mod->order_count ) ) ix_order = 0;
     }
     // Forced order/row
     if( ix_nextorder != 0xFF ) {
@@ -268,7 +266,7 @@ static void play_module() {
   // Set up pointers
   p_ptn = ( ( uint8_t* )p_mod )
         + sizeof( ptm_t )
-        + ( p_mod->order[ ix_order ] << 10 )
+        + ( ROM_READB( &p_mod->order[ ix_order ] ) << 10 )
         + ( ix_row << 4 );
         
   p_fxm = fxm;
@@ -277,14 +275,14 @@ static void play_module() {
   for( ch = 0; ch != 4; ch++ ) {
 
     // Deconstruct cell (what the hell were they smoking?)
-    temp_b     = *p_ptn++;                // sample.msb and period.msb
+    temp_b     = ROM_READB( p_ptn++ );                // sample.msb and period.msb
     temp_w     = ( temp_b & 0x0F ) << 8;
     ix_sample  = temp_b & 0xF0;
-    temp_w    |= *p_ptn++;                // period.lsb
-    temp_b     = *p_ptn++;                // sample.lsb and effect
+    temp_w    |= ROM_READB( p_ptn++ );                // period.lsb
+    temp_b     = ROM_READB( p_ptn++ );                // sample.lsb and effect
     ix_sample |= HI4( temp_b );
     fx         = LO4( temp_b ) << 4;
-    fxp        = *p_ptn++;                // parameters
+    fxp        = ROM_READB( p_ptn++ );                // parameters
     if( fx == 0xE0 ) {
       fx |= HI4( fxp );                   // extended parameters
       fxp  &= 0x0F;
@@ -292,12 +290,11 @@ static void play_module() {
     ix_period = 0x7F;                     // period index
     if( temp_w ) {
       for( temp_b = 0; temp_b != 36; temp_b++ ) {
-        if( period_tbl[ 0 ][ temp_b ] == temp_w ) {
+        if( ROM_READW( &period_tbl[ 0 ][ temp_b ] ) == temp_w ) {
           ix_period = temp_b;
           break;
         }
       }
-      // if( temp_b == 36 ) wtf();
     }
     
     // General effect parameter memory
@@ -331,13 +328,13 @@ static void play_module() {
         // Cell has note
         if( fx == 0x30 || fx == 0x50 ) {
           // Tone-portamento effect setup
-          p_fxm->port_target = period_tbl[ sample[ ix_sample ].tuning ][ ix_period ];
+          p_fxm->port_target = ROM_READW( &period_tbl[ sample[ ix_sample ].tuning ][ ix_period ] );
         } else {
           // Start note
           temp_b = p_fxm->sample;
           note_start( p_dma, temp_b, ix_period, ( fx == 0x90 ? fxp : 0 ) );
           // Set required effect memory parameters
-          p_fxm->period = period_tbl[ sample[ temp_b ].tuning ][ ix_period ];
+          p_fxm->period = ROM_READW( &period_tbl[ sample[ temp_b ].tuning ][ ix_period ] );
         }
       }
 
@@ -347,7 +344,7 @@ static void play_module() {
           if( fxp ) p_fxm->port_speed = fxp;
           break;
         case 0xB0: // Jump to pattern
-          ix_nextorder = ( fxp >= p_mod->order_count ? 0x00 : fxp );
+          ix_nextorder = ( fxp >= ROM_READB( &p_mod->order_count ) ? 0x00 : fxp );
           ix_nextrow = 0;
           pattern_jump = true;
           break;
@@ -357,14 +354,13 @@ static void play_module() {
           break;
         case 0xD0: // Jump to row
           fxp = HI4( fxp ) * 10 + LO4( fxp );
-          if( !pattern_jump ) ix_nextorder = ( ( ix_order + 1 ) >= p_mod->order_count ? 0x00 : ix_order + 1 );
+          if( !pattern_jump ) ix_nextorder = ( ( ix_order + 1 ) >= ROM_READB( &p_mod->order_count ) ? 0x00 : ix_order + 1 );
           pattern_jump = true;
           ix_nextrow = ( fxp > 63 ? 0 : fxp );
           break;
         case 0xF0: // Set speed
           if( fxp > 0x20 ) {
             cia = SAMPLE_RATE / ( ( 24 * fxp ) / 60 );
-            printf( "%i\n",cia );
           } else {
             speed = fxp;
           }
@@ -487,7 +483,6 @@ void mod_reset() {
   delay = 0;
   ctr = 0;
   cia = SAMPLE_RATE / ( ( 24 * 125 ) / 60 );
-  printf( "%i\n", cia );
 }
 
 // Loads a module
@@ -495,14 +490,13 @@ void mod_load( const void *p_data ) {
   uint8_t   n;
   int8_t   *p_audio;
   sample_t *p_sample = sample;
-  size_t    loop_offset, loop_len;
+  intptr_t  loop_offset, loop_len;
   uint8_t   patterns = 0;
-  
   p_mod = ( ptm_t* )p_data;
 
   // Find pattern count
   for( n = 0; n < 128; n++ ) {
-    if( p_mod->order[ n ] >= patterns ) patterns = p_mod->order[ n ] + 1;
+    if( ROM_READB( &p_mod->order[ n ] ) >= patterns ) patterns = ROM_READB( &p_mod->order[ n ] ) + 1;
   }
   
   // Read samples
@@ -510,14 +504,14 @@ void mod_load( const void *p_data ) {
   p_audio = ( ( int8_t* )p_mod ) + sizeof( ptm_t ) + ( patterns << 10 );
   for( n = 0; n != 31; n++ ) {
     p_sample->pa     = p_audio;
-    p_sample->length = ( p_mod->sample[ n ].length_msb << 9 )
-                     | ( p_mod->sample[ n ].length_lsb << 1 );
-    p_sample->volume = p_mod->sample[ n ].volume;
-    p_sample->tuning = p_mod->sample[ n ].tuning;
-    loop_offset      = ( p_mod->sample[ n ].loop_offset_msb << 9 )
-                     | ( p_mod->sample[ n ].loop_offset_lsb << 1 );
-    loop_len         = ( p_mod->sample[ n ].loop_len_msb << 9 )
-                     | ( p_mod->sample[ n ].loop_len_lsb << 1 );
+    p_sample->length = ( ROM_READB( &p_mod->sample[ n ].length_msb ) << 9 )
+                     | ( ROM_READB( &p_mod->sample[ n ].length_lsb ) << 1 );
+    p_sample->volume = ROM_READB( &p_mod->sample[ n ].volume );
+    p_sample->tuning = ROM_READB( &p_mod->sample[ n ].tuning );
+    loop_offset      = ( ROM_READB( &p_mod->sample[ n ].loop_offset_msb ) << 9 )
+                     | ( ROM_READB( &p_mod->sample[ n ].loop_offset_lsb ) << 1 );
+    loop_len         = ( ROM_READB( &p_mod->sample[ n ].loop_len_msb ) << 9 )
+                     | ( ROM_READB( &p_mod->sample[ n ].loop_len_lsb ) << 1 );
     p_sample->pb     = p_audio + p_sample->length;
     p_sample->pd     = ( loop_len < 3 ? 0 : loop_offset ) + p_sample->pa;
     p_sample->pc     = ( loop_len < 3 ? p_sample->pb : p_sample->pd + loop_len );
@@ -528,90 +522,11 @@ void mod_load( const void *p_data ) {
   mod_reset();
 }
 
-#ifdef HQ
-// Returns realtime sample data
-int16_t mod_sample() {
-  uint8_t ch;
-  dma_t *p_dma;
-  float lsample, rsample;
-  float delta, dsample;
-  float lmix = 0, rmix = 0;
-  float mmix;
-  static float merr = 0;
-  int16_t out;
-  
-  if( ctr-- == 0 ) {
-    ctr = cia;
-    play_module();
-  }
 
-  p_dma = dma;
-  for( ch = 0; ch != 4; ch++ ) {
-    if( p_dma->active ) {
-      p_dma->offset += p_dma->rate;
-      if( p_dma->addr + ( size_t )p_dma->offset >= p_dma->pb ) {
-        if( p_dma->loop ) {
-          p_dma->offset += p_dma->pa - p_dma->pb;
-          p_dma->pb = p_dma->pc;
-        } else {
-          p_dma->offset = p_dma->pb - 1 - p_dma->pa;
-          p_dma->active = false;
-        }
-      }
-
-      // Get interpolation samples
-      lsample = ( float )*( p_dma->addr + 0 + ( size_t )p_dma->offset );
-      if( p_dma->addr + ( size_t )p_dma->offset >= ( p_dma->pb - 1 ) ) {
-        rsample = ( float )*( p_dma->addr );
-      } else {
-        if( p_dma->loop ) {
-          rsample = ( float )*( p_dma->addr + 1 + ( size_t )p_dma->offset );
-        } else {
-          rsample = lsample;
-        }
-      }
-      
-      // Interpolate
-      delta = p_dma->offset - floor( p_dma->offset );
-      dsample = lsample * ( 1.0f - delta ) + ( rsample * delta );
-      
-      // Apply volume
-      dsample *= ( float )p_dma->volume;
-      
-      // Channel mix
-      if( ch == 0 || ch == 3 ) {
-        lmix += dsample;
-      } else {
-        rmix += dsample;
-      }
-      
-    }
-
-    p_dma++;
-  }
-  
-  // Mix
-  mmix = lmix + rmix;
-  out = ( int16_t )round( mmix );
-
-  // Apply dithering
-  if( ( ( ( float )rand() ) / RAND_MAX ) < abs( merr ) ) {
-    if( merr > 0 ) {
-      out -= 1;
-    } else {
-      out += 1;
-    }
-  }
-  merr += ( float )out - mmix;
-  
-  return out;
-}
-
-#else
 int8_t mod_sample() {
   uint8_t ch;
   dma_t *p_dma;
-  int16_t left = 0, right = 0;
+  int16_t mono = 0;
   
   if( ctr-- == 0 ) {
     ctr = cia;
@@ -621,27 +536,21 @@ int8_t mod_sample() {
   p_dma = dma;
   for( ch = 0; ch != 4; ch++ ) {
     if( p_dma->active ) {
-      p_dma->offset += p_dma->rate;
-      if( p_dma->addr + ( size_t )p_dma->offset >= p_dma->pb ) {
+      p_dma->addr += p_dma->rate;
+      if( p_dma->addr >= ( float )( intptr_t )p_dma->pb ) {
         if( p_dma->loop ) {
-          p_dma->offset += p_dma->pa - p_dma->pb;
+          p_dma->addr -= p_dma->pb - p_dma->pa;
           p_dma->pb = p_dma->pc;
         } else {
-          p_dma->offset = p_dma->pb - 1 - p_dma->pa;
+          p_dma->addr = p_dma->pb - 1 - p_dma->pa;
           p_dma->active = false;
         }
       }
-      if( ch == 0 || ch == 3 ) {
-        left += *( p_dma->addr + ( size_t )p_dma->offset ) * p_dma->volume;
-      } else {
-        right += *( p_dma->addr + ( size_t )p_dma->offset ) * p_dma->volume;
-      }
-
+      mono += ( ( int8_t )ROM_READB( ( intptr_t )p_dma->addr ) ) * p_dma->volume;
     }
-
     p_dma++;
   }
   
-  return ( left + right ) / 256;
+  return mono / 256;
 }
-#endif
+
