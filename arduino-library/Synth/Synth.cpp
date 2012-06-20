@@ -348,3 +348,33 @@ void Synth_Class::setResonance( uint8_t filter, uint8_t q ) {
   filter_write( filter++, q >>= 2 );
   filter_write( filter++, q >>= 2 );
 }
+
+// Sets filter and mode-value for filter 0...1
+void Synth_Class::setFilterMode( uint8_t filter, uint8_t fm ) {
+  switch( fm ) {
+    case FM_LP:
+      this->setFilter( filter, FILTER_LP );
+      this->setMode( filter, 0 );
+      break;
+    case FM_FATLP:
+      this->setFilter( filter, FILTER_LP );
+      this->setMode( filter, 3 );
+      break;
+    case FM_BP:
+      this->setFilter( filter, FILTER_BP );
+      this->setMode( filter, 0 );
+      break;
+    case FM_FATBP:
+      this->setFilter( filter, FILTER_BP );
+      this->setMode( filter, 3 );
+      break;
+    case FM_HP:
+      this->setFilter( filter, FILTER_HP );
+      this->setMode( filter, 2 );
+      break;
+    case FM_PHASER:
+      this->setFilter( filter, FILTER_HP );
+      this->setMode( filter, 0 );
+      break;
+  }
+}

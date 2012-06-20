@@ -44,11 +44,20 @@
 #define FLT_F1   3 // Filter clock 1
 
 enum filter_e {
-  FILTER_LP = 0x01,
-  FILTER_BP = 0x02,
-  FILTER_HP = 0x04
+  FILTER_LP = 0x01, // low-pass
+  FILTER_BP = 0x02, // band-pass
+  FILTER_HP = 0x04  // high-pass
 };
 
+enum fm_e {
+  FM_LP     = 0, // low-pass
+  FM_FATLP  = 1, // fat low-pass
+  FM_BP     = 2, // band-pass
+  FM_FATBP  = 3, // fat band-pass
+  FM_HP     = 4, // high-pass
+  FM_PHASER = 5  // phaser
+};
+             
 enum midi_e {
   NoteOff              = 0x80, // Channel - Note Off
   NoteOn               = 0x90, // Channel - Note On
@@ -133,6 +142,12 @@ public:
   // **********************************************************************
   // Technical/high performance versions of some of the previous methods
   // **********************************************************************
+
+  // Sets filter and mode-value for filter 0...1
+  // The filter chip has specific modes and outputs that are intended to
+  // be used together to produce a specific filter effect and this methods
+  // sets one of those predefined configurations.
+  void setFilterMode( uint8_t filter, uint8_t fm );
 
   // Sets the F-value using a direct approach
   // psb and ocr refers to prescaler bits and output compare register

@@ -18,6 +18,7 @@ setCutoff	KEYWORD2
 setMode	KEYWORD2
 setShift	KEYWORD2
 setResonance	KEYWORD2
+setFilterMode	KEYWORD2
 popMidi	KEYWORD2
 freeMidi	KEYWORD2
 midiAvailable	KEYWORD2
