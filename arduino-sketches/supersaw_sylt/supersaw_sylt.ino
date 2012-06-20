@@ -432,32 +432,7 @@ void loop( void ) {
             Synth.setShift( 0, ( 255 - midi->data2 ) >> 1 );
             break;
           case 13: // F0 style
-            switch( midi->data2 / 22 ) {
-              case 0: // low-pass
-                Synth.setFilter( 0, FILTER_LP );
-                Synth.setMode( 0, 0 );
-                break;
-              case 1: // fat low-pass
-                Synth.setFilter( 0, FILTER_LP );
-                Synth.setMode( 0, 3 );
-                break;
-              case 2: // band-pass
-                Synth.setFilter( 0, FILTER_BP );
-                Synth.setMode( 0, 0 );
-                break;
-              case 3: // fat band-pass
-                Synth.setFilter( 0, FILTER_BP );
-                Synth.setMode( 0, 3 );
-                break;
-              case 4: // high-pass
-                Synth.setFilter( 0, FILTER_HP );
-                Synth.setMode( 0, 2 );
-                break;
-              case 5: // phaser
-                Synth.setFilter( 0, FILTER_HP );
-                Synth.setMode( 0, 0 );
-                break;
-            }
+            Synth.setFilterMode( 0, midi->data2 / 22 );
             break;
 
           case 15: // F1 center frequency
@@ -471,34 +446,9 @@ void loop( void ) {
             Synth.setShift( 1, ( 255 - midi->data2 ) >> 1 );
             break;
           case 18: // F1 style
-            switch( midi->data2 / 22 ) {
-              case 0: // low-pass
-                Synth.setFilter( 1, FILTER_LP );
-                Synth.setMode( 1, 0 );
-                break;
-              case 1: // fat low-pass
-                Synth.setFilter( 1, FILTER_LP );
-                Synth.setMode( 1, 3 );
-                break;
-              case 2: // band-pass
-                Synth.setFilter( 1, FILTER_BP );
-                Synth.setMode( 1, 0 );
-                break;
-              case 3: // fat band-pass
-                Synth.setFilter( 1, FILTER_BP );
-                Synth.setMode( 1, 3 );
-                break;
-              case 4: // high-pass
-                Synth.setFilter( 1, FILTER_HP );
-                Synth.setMode( 1, 2 );
-                break;
-              case 5: // phaser
-                Synth.setFilter( 1, FILTER_HP );
-                Synth.setMode( 1, 0 );
-                break;
-            }
+            Synth.setFilterMode( 1, midi->data2 / 22 );
             break;
-
+            
           case 20: // Pitch portamento speed
             port_speed = 127-midi->data2;
             break;

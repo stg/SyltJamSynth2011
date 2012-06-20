@@ -1,0 +1,44 @@
+Drum synth
+
+== MIDI MAPPING ==================
+
+CC   Description    Values
+10   Pitch end      0..127=0-6kHz
+15   Pitch start    0..127=0-6kHz
+                   
+11   Volume end     0..127=0-100%
+16   Volume start   0..127=0-100%
+                   
+12   F0 end         0..127=0-20kHz
+17   F0 start       0..127=0-20kHz
+                   
+13   F1 end         0..127=0-20kHz
+18   F1 start       0..127=0-20kHz
+                   
+20   F0 resonance   0..127=0-100%
+21   F0 mode        see modes
+                   
+22   F1 resonance   0..127=0-100%
+23   F1 mode        see modes
+                   
+25   waveform       see waveform
+26   pulse width    0..127=0-100%
+27   time           0..127=0-2sec
+
+== WAVEFORMS =====================
+
+  Range    Waveform
+  0...31   noise
+ 32...63   saw
+ 64...95   triangle
+ 96..127   pulse/square
+
+== MODES =========================
+
+  Range    Filter mode
+  0...21   low-pass
+ 22...43   phat low-pass
+ 44...65   band-pass
+ 66...87   phat band-pass
+ 88..109   high-pass
+110..127   phaser
