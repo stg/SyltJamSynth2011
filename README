@@ -9,7 +9,7 @@ The original DIY version is described at http://wiki.forskningsavd.se/SyltJamSyn
 Source code for the DIY version can be found in the ./diy/ folder.
 
 All other files relate to the commercial version, and these include:
-./pcb/                 Schematic and PCB (DipTrace format) and gerber+excellon manufacturing files
+./pcb/                 Schematic and PCB (DipTrace format) + production files
 ./doc/                 Documentation and manual
 ./case/                Corel Draw 12 case design (for laser cutting)
 ./arduino-library/     API for the Arduino IDE
