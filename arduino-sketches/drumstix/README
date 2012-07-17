@@ -2,28 +2,36 @@ Drum synth
 
 == MIDI MAPPING ==================
 
-CC   Description    Values
-10   Pitch end      0..127=0-6kHz
-15   Pitch start    0..127=0-6kHz
-                   
-11   Volume end     0..127=0-100%
-16   Volume start   0..127=0-100%
-                   
-12   F0 end         0..127=0-20kHz
-17   F0 start       0..127=0-20kHz
-                   
-13   F1 end         0..127=0-20kHz
-18   F1 start       0..127=0-20kHz
-                   
-20   F0 resonance   0..127=0-100%
-21   F0 mode        see modes
-                   
-22   F1 resonance   0..127=0-100%
-23   F1 mode        see modes
-                   
-25   waveform       see waveform
-26   pulse width    0..127=0-100%
-27   time           0..127=0-2sec
+CC   Description          Values
+1    Time                 0..127=0-2sec
+
+10   Osc 1 pitch end      0..127=0-6kHz
+11   Osc 1 pitch start    0..127=0-6kHz          
+12   Osc 1 volume end     0..127=0-100%
+13   Osc 1 volume start   0..127=0-100%
+14   Osc 1 waveform       see waveform
+15   Osc 1 pulse width    0..127=0-100%
+
+16   Modulation           see modulation
+
+20   Osc 2 pitch end      0..127=0-6kHz
+21   Osc 2 pitch start    0..127=0-6kHz          
+22   Osc 2 volume end     0..127=0-100%
+23   Osc 2 volume start   0..127=0-100%
+24   Osc 2 waveform       see waveform
+25   Osc 2 pulse width    0..127=0-100%
+
+26   Type of osc 2        see range
+
+30   Filter 1 end         0..127=0-20kHz
+31   Filter 1 start       0..127=0-20kHz
+32   Filter 1 resonance   0..127=0-100%
+33   Filter 1 mode        see modes
+
+40   Filter 2 end         0..127=0-20kHz
+41   Filter 2 start       0..127=0-20kHz
+42   Filter 2 resonance   0..127=0-100%
+43   Filter 2 mode        see modes
 
 == WAVEFORMS =====================
 
@@ -42,3 +50,19 @@ CC   Description    Values
  66...87   phat band-pass
  88..109   high-pass
 110..127   phaser
+
+== MODULATION ====================
+  Range    Modulation
+  0...31   Simple mix
+           No clipping allows digital overflow artifacts.
+           To prevent artifacts, keep volumes below 50%
+ 32...63   Osc 2 modulates Osc 1
+           Frequency modulation, osc 2 volume = strength
+ 64..127   Reserved
+ 
+ == RANGE ====================
+  Range    Modulation
+  0...31   LFO 0..25Hz Low Frequency Oscillator
+ 32...63   MFO 0..500Hz Medium Frequency Oscillator
+ 64...95   HFO 0..6kHz High Frequency Oscillator
+ 96..127   AFO 0..20kHz Audible/awesome Frequency Oscillator

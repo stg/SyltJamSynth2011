@@ -228,7 +228,9 @@ uint8_t Synth_Class::midiAvailable( void ) {
 void Synth_Class::midiRead( void ) {
   midi_read = *p_queue_tail;
   if( ++p_queue_tail ==  &queue[ MIDI_QUEUE_SIZE ] ) p_queue_tail = queue;
+  cli();
   midi_free++;
+  sei();
 }
 
 uint8_t Synth_Class::midiMessage( void ) {
@@ -259,7 +261,9 @@ midi_t* Synth_Class::getMidi( void ) {
 
 void Synth_Class::freeMidi( void ) {
   if( ++p_queue_tail ==  &queue[ MIDI_QUEUE_SIZE ] ) p_queue_tail = queue;
+ 	cli();
   midi_free++;
+  sei();
 }
 
 // Sets the filter FILTER_LP/FILTER_BP/FILTER_HP for filter 0...1
