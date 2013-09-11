@@ -1,0 +1,14 @@
+Vocalizer
+
+== MIDI MAPPING ==================
+
+CC   Description          Values
+
+10   Grain 1 harmonic     0..127
+11   Grain 1 decay        0..127
+
+20   Grain 2 harmonic     0..127
+21   Grain 2 decay        0..127
+
+30   Filter frequency     0..127
+31   Filter resonance     0..127
