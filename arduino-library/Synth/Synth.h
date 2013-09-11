@@ -5,6 +5,22 @@
  *  Version   1.0
  *  @author   Davey Taylor
  *  @date     2012-03-06 (YYYY-MM-DD)
+
+Copyright 2011-2012 Davey Taylor
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
  */
 
 #ifndef LIB_SYNTH_H_
@@ -117,14 +133,12 @@ public:
   // **********************************************************************
   // Refer to the datasheet for detailed information on the filter settings
   // **********************************************************************
-  
-  // Sets the filter FILTER_LP/FILTER_BP/FILTER_HP for filter 0...1
-  // This refers to which output pin of the filter is connected
-  void setFilter( uint8_t filter, uint8_t type );
 
-  // Sets F-value 4...40000hz for filter 0...1
-  // This value refers to the center/cut-off frequency of the filter
-  void setCutoff( uint8_t filter, float freq );
+  // Sets filter and mode-value for filter 0...1
+  // The filter chip has specific modes and outputs that are intended to
+  // be used together to produce a specific filter effect and this methods
+  // sets one of those predefined configurations.
+  void setFilterMode( uint8_t filter, uint8_t fm );
 
   // Sets mode-value 0...3 for filter 0...1
   // This value refers to different operating modes for the filter
@@ -143,22 +157,35 @@ public:
   // Technical/high performance versions of some of the previous methods
   // **********************************************************************
 
-  // Sets filter and mode-value for filter 0...1
-  // The filter chip has specific modes and outputs that are intended to
-  // be used together to produce a specific filter effect and this methods
-  // sets one of those predefined configurations.
-  void setFilterMode( uint8_t filter, uint8_t fm );
+  
+  // Sets the filter FILTER_LP/FILTER_BP/FILTER_HP for filter 0...1
+  // This refers to which output pin of the filter is connected
+  void setFilter( uint8_t filter, uint8_t type );
+
+  // Sets F-value 4...40000hz for filter 0...1
+  // This value refers to the center/cut-off frequency of the filter
+  void setCutoff( uint8_t filter, float freq );
 
   // Sets the F-value using a direct approach
   // psb and ocr refers to prescaler bits and output compare register
   // see the avr datasheets for more information on these
   void setClock( uint8_t filter, uint8_t psb, uint8_t ocr );
-  // retrieves MIDI message pointer from the MIDI queue
+  
+  // Retrieves MIDI message pointer from the MIDI queue
   midi_t* getMidi( void );
-  // frees up a slot in the MIDI queue
+  
+  // Frees up a slot in the MIDI queue
   // must be called after successful getMidi
   void freeMidi( void );  
   
+  // Saves and loads patches from the internal EEPROM
+  // id specifies synth identifier - use a unique value for every firmware
+  // This prevents loading of patch data saved by another firmware
+  // slot specifies a slot number between 0 and 23
+  // If data is bigger than 40 bytes (size), several slots will used
+  // If more data is required, use several slots
+  bool savePatch( uint16_t id, uint8_t slot, void* data, uint16_t size );
+  bool loadPatch( uint16_t id, uint8_t slot, void* data, uint16_t size );
 
 };
 

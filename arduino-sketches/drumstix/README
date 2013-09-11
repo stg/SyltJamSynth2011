@@ -1,4 +1,4 @@
-Drum synth
+Drumstix
 
 == MIDI MAPPING ==================
 
@@ -25,13 +25,11 @@ CC   Description          Values
 
 30   Filter 1 end         0..127=0-20kHz
 31   Filter 1 start       0..127=0-20kHz
-32   Filter 1 resonance   0..127=0-100%
-33   Filter 1 mode        see modes
+32   Filter 1 mode        see modes
 
 40   Filter 2 end         0..127=0-20kHz
 41   Filter 2 start       0..127=0-20kHz
-42   Filter 2 resonance   0..127=0-100%
-43   Filter 2 mode        see modes
+42   Filter 2 mode        see modes
 
 == WAVEFORMS =====================
 

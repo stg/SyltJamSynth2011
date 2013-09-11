@@ -1,17 +1,18 @@
-#include "avr/pgmspace.h"
-#include "addressed_memory.h"
 /*
-  This work is published under the Creative Commons BY-NC license available at:
-  http://creativecommons.org/licenses/by-nc/3.0/
-  
+  This work is published under the Creative Commons BY-NC license.
+  See http://creativecommons.org/licenses/by-nc/3.0/ for more information.
+
   Author: senseitg@gmail.com
-  
+
   Contact the author for commercial licensing information.
-  
+
   Allows playback of nearly all ProTracker Modules.
-  
+
   All effects are implemented and tested, except for FunkRepeat/Invert Loop.
 */
+
+#include "avr/pgmspace.h"
+#include "addressed_memory.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -51,10 +52,10 @@ typedef struct __attribute__((packed)) {
   uint8_t  length_lsb;
   uint8_t  tuning;          // Fine-tune value
   uint8_t  volume;          // Default volume
-  uint8_t loop_offset_msb; // Loop point in words
-  uint8_t loop_offset_lsb;
-  uint8_t loop_len_msb;    // Loop length in words
-  uint8_t loop_len_lsb;
+  uint8_t  loop_offset_msb; // Loop point in words
+  uint8_t  loop_offset_lsb;
+  uint8_t  loop_len_msb;    // Loop length in words
+  uint8_t  loop_len_lsb;
 } pts_t;
 
 // ProTracker module header
@@ -102,7 +103,7 @@ typedef struct {
   uint8_t    loop_row;
   uint8_t    loop_count;
   uint8_t    param;
-} fxm_t;    
+} fxm_t;
 
 // DMA emulation memory
 typedef struct {
@@ -161,7 +162,7 @@ static const int8_t sine[ 64 ] PROGMEM = {
 static int8_t do_osc( osc_t *p_osc ) {
   int8_t sample = 0;
   int16_t mul;
-  
+
   switch( p_osc->mode & 0x03 ) {
     case 0: // Sine
       sample = ROM_READB( &sine[ ( p_osc->offset ) & 0x3F ] );
@@ -235,16 +236,16 @@ static void play_module() {
   uint8_t  ix_period;
   uint8_t  ix_sample;
   uint8_t *p_ptn;
-  
+
   // Advance tick
   if( ++tick == speed ) tick = 0;
-    
+
   // Handle row delay
   if( delay ) {
     if( tick == 0 ) delay--;
     return;
   }
-  
+
   // Advance playback
   if( tick == 0 ) {
     if( ++ix_row == 64 ) {
@@ -260,7 +261,7 @@ static void play_module() {
       ix_row = ix_nextrow;
       ix_nextrow = 0xFF;
     }
-  
+
   }
 
   // Set up pointers
@@ -268,7 +269,7 @@ static void play_module() {
         + sizeof( ptm_t )
         + ( ROM_READB( &p_mod->order[ ix_order ] ) << 10 )
         + ( ix_row << 4 );
-        
+
   p_fxm = fxm;
   p_dma = dma;
 
@@ -296,7 +297,7 @@ static void play_module() {
         }
       }
     }
-    
+
     // General effect parameter memory
     // NOTE: Unsure if this is true to the original ProTracker, but alot of
     //       modern players and trackers do implement this functionality.
@@ -307,7 +308,7 @@ static void play_module() {
         fxp = p_fxm->param;
       }
     }
-    
+
     if( tick == ( fx == 0xED ? fxp : 0 ) ) {
       if( ix_sample != 0 ) {
         // Cell has sample
@@ -368,6 +369,9 @@ static void play_module() {
         case 0x40: // Vibrato
           if( fxp ) p_fxm->vibr.fxp = fxp;
           break;
+        case 0x70: // Tremolo
+          if( fxp ) p_fxm->trem.fxp = fxp;
+          break;
         case 0xE1: // Fine slide up
           p_fxm->period = MAX( p_fxm->period - fxp, PERIOD_MIN );
           p_dma->rate = SYS_FREQ / p_fxm->period;
@@ -409,7 +413,7 @@ static void play_module() {
           delay = fxp;
           break;
       }
-      
+
     } else {
       // Effects processed when tick > 0
       switch( fx ) {
@@ -445,7 +449,7 @@ static void play_module() {
           }
       }
     }
-      
+
     // Normal play and arpeggio
     if( fx == 0x00 ) {
       temp_b = tick; while( temp_b > 2 ) temp_b -= 2;
@@ -464,7 +468,7 @@ static void play_module() {
       temp_b = p_fxm->volume + do_osc( &p_fxm->trem );
       p_dma->volume = MAX( MIN( temp_b, 0x40 ), 0 );
     }
-  
+
     p_fxm++;
     p_dma++;
   }
@@ -498,7 +502,7 @@ void mod_load( const void *p_data ) {
   for( n = 0; n < 128; n++ ) {
     if( ROM_READB( &p_mod->order[ n ] ) >= patterns ) patterns = ROM_READB( &p_mod->order[ n ] ) + 1;
   }
-  
+
   // Read samples
   memset( sample, 0, sizeof( sample ) );
   p_audio = ( ( int8_t* )p_mod ) + sizeof( ptm_t ) + ( patterns << 10 );
@@ -527,7 +531,7 @@ int8_t mod_sample() {
   uint8_t ch;
   dma_t *p_dma;
   int16_t mono = 0;
-  
+
   if( ctr-- == 0 ) {
     ctr = cia;
     play_module();
@@ -550,7 +554,7 @@ int8_t mod_sample() {
     }
     p_dma++;
   }
-  
+
   return mono / 256;
 }
 

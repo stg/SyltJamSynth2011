@@ -1,42 +1,52 @@
-Super-saw synth
+Supersaw synth
 
 == MIDI MAPPING ==================
 
-CC   Description
+CC   Description                      Values
 
- 1   Supersaw spread
+ 1   Supersaw spread                  0..127 = no detune - massive detune
      
-10   Filter 1 cutoff 
-11   Filter 1 resonance
-12   Filter 1 frequency shift
-13   Filter 1 mode (will change)
+10   Filter 1 cutoff                  0..127
+11   Filter 1 resonance               0..127
+12   Filter 1 frequency shift         0..127
+13   Filter 1 mode                    see modes
      
-15   Filter 2 cutoff
-16   Filter 2 resonance
-17   Filter 2 frequency shift
-18   Filter 2 mode (will change)
+15   Filter 2 cutoff                  0..127
+16   Filter 2 resonance               0..127
+17   Filter 2 frequency shift         0..127
+18   Filter 2 mode                    see modes
      
-20   portamento rate
-21   volume envelope initial level
-22   volume envelope attack rate
-23   volume envelope decay rate
-24   volume envelope sustain level
-25   volume envelope release rate
+20   portamento rate                  0..127 = 0-?sec
+21   volume envelope retrigger        0-63: off, 64-127: on
+22   volume envelope attack rate      0..127
+23   volume envelope decay rate       0..127
+24   volume envelope sustain level    0..127
+25   volume envelope release rate     0..127
      
-29   mode (0-63: mono, 64-127: poly)
+29   mode                             0-63: mono, 64-127: poly
      
-30   Filter 1 tracking (0: envelope, 1-127: key tracking rate)
-31   Filter 1 envelope initial level
-32   Filter 1 envelope attack rate
-33   Filter 1 envelope decay rate
-34   Filter 1 envelope sustain level
-35   Filter 1 envelope release rate
-36   Filter 1 envelope multiplier (0-63: negative, 65-127: positive)
+30   Filter 1 tracking                0 = envelope, 1-127: key tracking rate
+31   Filter 1 envelope retrigger      0-63: off, 64-127: on
+32   Filter 1 envelope attack rate    0..127
+33   Filter 1 envelope decay rate     0..127
+34   Filter 1 envelope sustain level  0..127
+35   Filter 1 envelope release rate   0..127
+36   Filter 1 envelope multiplier     0-63: negative, 65-127: positive
      
-40   Filter 2 tracking (0: envelope, 1-127: key tracking rate)
-41   Filter 2 envelope initial level
-42   Filter 2 envelope attack rate
-43   Filter 2 envelope decay rate
-44   Filter 2 envelope sustain level
-45   Filter 2 envelope release rate
-46   Filter 2 envelope multiplier (0-63: negative, 65-127: positive)
+40   Filter 2 tracking                0: envelope, 1-127: key tracking rate
+41   Filter 2 envelope retrigger      0-63: off, 64-127: on
+42   Filter 2 envelope attack rate    0..127
+43   Filter 2 envelope decay rate     0..127
+44   Filter 2 envelope sustain level  0..127
+45   Filter 2 envelope release rate   0..127
+46   Filter 2 envelope multiplier     0-63: negative, 65-127: positive
+
+== MODES =========================
+
+  Range    Filter mode
+  0...21   low-pass
+ 22...43   phat low-pass
+ 44...65   band-pass
+ 66...87   phat band-pass
+ 88..109   high-pass
+110..127   phaser

@@ -1,3 +1,4 @@
+
 #include "Synth.h"
 
 #define SAMPLE_FREQ 22050
@@ -35,29 +36,6 @@ typedef struct {
 
 // Patch memory & defaults
 uint8_t  patches[24][20] = {
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
-  {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60},
   {0, 2, 127, 0, 0, 0, 10, 10, 0, 0, 0, 32, 0, 25, 33, 0, 25, 33, 60}
 };
 
@@ -124,19 +102,22 @@ uint8_t sample(void) {
 
 void setup(void) {
   uint8_t n=0;
-  
+ 
   // Generate some randoms for noise
   do { randy[n] = rand(); } while(++n);
-  
+ 
   // Load patch memory - 0x6453 is unique for THIS SYNTH ONLY, do not reuse
   Synth.loadPatch(0x6453, 12, patches, 480);
-  
+ 
   // Initialize synth
   Synth.attachInterrupt(sample, SAMPLE_FREQ);
-  
+ 
   // Set fixed resonance
   Synth.setResonance(0, 0x1F);
   Synth.setResonance(1, 0x1F);
+ 
+  pinMode(2, INPUT);
+  pinMode(12, OUTPUT);
 }
 
 // Scales a MIDI CC value (0-127) to the range (a-b)
@@ -155,7 +136,7 @@ float get_range(uint8_t id) {
 }
 
 void load_patch(uint8_t *patch) {
-  uint8_t n;  
+  uint8_t n; 
   float fmul;
   drum.osc[0].pitch.b = midi_range(*(patch++), 0, 6000);
   drum.osc[0].pitch.a = midi_range(*(patch++), 0, 6000);
@@ -196,7 +177,7 @@ void load_patch(uint8_t *patch) {
     osc[n].cycle = drum.osc[n].pitch.a * 0xFFFFFFFF;
     osc[n].increment = drum.osc[n].pitch.b * 0xFFFFFFFF;
     osc[n].volume = (uint8_t)(drum.osc[n].vol.a * 255.0);
-  }      
+  }     
   Synth.setCutoff(0, drum.flt[0].freq.a);
   Synth.setCutoff(1, drum.flt[1].freq.a);
   sei();
@@ -205,14 +186,28 @@ void load_patch(uint8_t *patch) {
 
 // Where the fun stuff happens!
 void loop(void) {
-  midi_t *midi = Synth.getMidi(); // Retrieve MIDI message queue pointer
+    midi_t *midi = Synth.getMidi(); // Retrieve MIDI message queue pointer
   uint32_t delta;
+ 
+ 
+  // Trigger on 2, patch is cv on A0 (0-5V)
+  static bool last_trig = 0;
+  bool trig = digitalRead(2);
+  if(trig && !last_trig) {
+    // Got a MIDI: NOTE ON message
+    editing = &patches[analogRead(A0) / 43][0];
+    load_patch(editing);
+  }
+  last_trig = trig;
+ 
   if(midi) {
     if(savestate != 3) {
       if(midi->message == 0x90) {
         // Got a MIDI: NOTE ON message
+        digitalWrite(12, HIGH); // Trig out on 12 - HIGH
         editing = &patches[midi->data1 % 24][0];
         load_patch(editing);
+        digitalWrite(12, LOW); // Trig out - reset to LOW
       } else if(midi->message == 0xB0) {
         // Got a MIDI: CONTROL CHANGE message
         switch(midi->data1) {
@@ -252,7 +247,7 @@ void loop(void) {
     }
     Synth.freeMidi(); // Free MIDI message so the queue doesn't fill up
   }
-  
+ 
   // Patch memory save routine
   if(savestate == 3) {
     if(delta_sg == 0) {
@@ -264,9 +259,9 @@ void loop(void) {
         savesound[18] *= 0.8;
         load_patch(savesound);
       }
-    }      
-  }  
-  
+    }     
+  } 
+ 
   // Update volume & cutoff on a "when there is time" basis.
   // Putting this here instead of in the sample generator code offloads the sample
   // generation interrupt allowing for a much higher sample-rate.
@@ -280,3 +275,4 @@ void loop(void) {
   // Mutate noise
   randy[rand() & 0xFF] = rand();
 }
+

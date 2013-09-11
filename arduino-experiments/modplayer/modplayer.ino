@@ -1,13 +1,20 @@
+/*
+  This work is published under the Creative Commons BY-NC license.
+  See http://creativecommons.org/licenses/by-nc/3.0/ for more information.
+  
+  Author: senseitg@gmail.com
+  
+  Contact the author for commercial licensing information.
+  
+  Allows playback of nearly all ProTracker Modules.
+  
+  All effects are implemented and tested, except for FunkRepeat/Invert Loop.
+*/
+
 #include "Synth.h"
 #include "addressed_memory.h"
 #include <avr/pgmspace.h>
 extern uint8_t PROGMEM mod_data[];
-
-
-//uint8_t pwm=0;
-//uint8_t volatile poo=0;
-
-//uint8_t *mem=(uint8_t*)mod_data;
 
 #define BUFSZ 64
 
