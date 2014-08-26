@@ -28,7 +28,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <avr/eeprom.h>
 
 Synth_Class Synth;
-ß
+
 Synth_Class::Synth_Class() { }
 Synth_Class::~Synth_Class() { }
 
@@ -159,10 +159,7 @@ ISR( TIMER1_COMPA_vect ) {
             midi.data2 = data;
           }
           // Count received bytes, check for message complete
-          if( ++midi_count == midi_length ) {
-            midi_count = 0; // Reset count, allow for running status
-            PUSH(); // Push message to queue
-          }
+          if( ++midi_count == midi_length ) PUSH(); // Push message to queue
         }
       }
     }
